@@ -131,3 +131,9 @@ all.config
 
 # Kdevelop4
 *.kdev4
+<<<<<<< HEAD
+=======
+
+!drivers/misc/mediatek/fpsgo_cus/src/*.o
+*.orig
+>>>>>>> f3b19973c853 (import: susfs 1.5.9)
