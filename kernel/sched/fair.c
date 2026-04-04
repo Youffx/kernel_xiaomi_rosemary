@@ -7842,14 +7842,14 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag,
 	int cpu;
 
 	int util = task_util_est(p);
-/* ==== HYBRID: CASS ==== */
-if (util > 300) {
-	return cass_select_task_rq_fair(p, prev_cpu,
-				       sd_flag, wake_flags);
-}
-/* ==== MTK scheduler ==== */
-    result = SELECT_TASK_RQ_FAIR(p, prev_cpu, sd_flag, wake_flags,
-	    sibling_count_hint);
+
+	if (util > 300) {
+		return cass_select_task_rq_fair(p, prev_cpu,
+						sd_flag, wake_flags);
+	}
+
+	result = SELECT_TASK_RQ_FAIR(p, prev_cpu, sd_flag, wake_flags,
+		sibling_count_hint);
 #ifdef CONFIG_MTK_SCHED_CPU_PREFER
 	select_task_prefer_cpu_fair(p, &result);
 #endif
