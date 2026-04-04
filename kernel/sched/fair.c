@@ -23,6 +23,10 @@
 #include "sched.h"
 
 #include <trace/events/sched.h>
+extern int cass_select_task_rq_fair(struct task_struct *p,
+				    int prev_cpu,
+				    int sd_flag,
+				    int wake_flags);
 
 /*
  * Targeted preemption latency for CPU-bound tasks:
@@ -7837,8 +7841,15 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag,
 	int result = 0;
 	int cpu;
 
-	result = SELECT_TASK_RQ_FAIR(p, prev_cpu, sd_flag, wake_flags,
-		sibling_count_hint);
+	int util = task_util_est(p);
+/* ==== HYBRID: CASS ==== */
+if (util > 300) {
+	return cass_select_task_rq_fair(p, prev_cpu,
+				       sd_flag, wake_flags);
+}
+/* ==== MTK scheduler ==== */
+    result = SELECT_TASK_RQ_FAIR(p, prev_cpu, sd_flag, wake_flags,
+	    sibling_count_hint);
 #ifdef CONFIG_MTK_SCHED_CPU_PREFER
 	select_task_prefer_cpu_fair(p, &result);
 #endif
@@ -12157,13 +12168,6 @@ static unsigned int get_rr_interval_fair(struct rq *rq, struct task_struct *task
 
 #ifdef CONFIG_SCHED_CASS
 #include "cass.c"
-
-/* Use CASS. A dummy wrapper ensures the replaced function is still "used". */
-static inline void *select_task_rq_fair_dummy(void)
-{
-	return (void *)select_task_rq_fair;
-}
-#define select_task_rq_fair cass_select_task_rq_fair
 #endif /* CONFIG_SCHED_CASS */
 
 /*
