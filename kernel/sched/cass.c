@@ -1,8 +1,3 @@
-#include <linux/cpumask.h>
-#include <linux/kernel.h>
-#include <linux/types.h>
-#include <stdbool.h>
-
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (C) 2023-2024 Sultan Alsawaf <sultan@kerneltoast.com>.
