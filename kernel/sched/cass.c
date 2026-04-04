@@ -3,9 +3,6 @@
 #include <linux/types.h>
 #include <stdbool.h>
 
-static unsigned long capacity_of(int cpu);
-void sync_entity_load_avg(struct sched_entity *se);
-
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (C) 2023-2024 Sultan Alsawaf <sultan@kerneltoast.com>.
