@@ -21,8 +21,11 @@
  *  Copyright (C) 2007 Red Hat, Inc., Peter Zijlstra
  */
 #include "sched.h"
-
 #include <trace/events/sched.h>
+
+static unsigned long capacity_of(int cpu);
+void sync_entity_load_avg(struct sched_entity *se);
+
 #ifdef CONFIG_SCHED_CASS
 #include "cass.c"
 #endif /* CONFIG_SCHED_CASS */
