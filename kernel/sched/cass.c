@@ -1,3 +1,10 @@
+#include "sched.h"
+#include <linux/sched.h>
+#include <linux/sched/topology.h>
+#include <linux/cpumask.h>
+#include <linux/kernel.h>
+#include <linux/types.h>
+#include <stdbool.h>
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (C) 2023-2024 Sultan Alsawaf <sultan@kerneltoast.com>.
@@ -38,13 +45,15 @@ unsigned long cass_cpu_util(int cpu, bool sync)
 	struct cfs_rq *cfs_rq = &cpu_rq(cpu)->cfs;
 	unsigned long util = READ_ONCE(cfs_rq->avg.util_avg);
 
-	/* Deduct @current's util from this CPU if this is a sync wake */
-	if (sync && cpu == smp_processor_id())
-		lsub_positive(&util, task_util(current));
+	/* Deduct current task util on sync wake (approximation) */
+	if (sync && cpu == smp_processor_id()) {
+		unsigned long cur = current->se.avg.util_avg;
 
-	if (sched_feat(UTIL_EST))
-		util = max_t(unsigned long, util,
-			     READ_ONCE(cfs_rq->avg.util_est.enqueued));
+		if (util > cur)
+			util -= cur;
+		else
+			util = 0;
+	}
 
 	return util;
 }
@@ -115,7 +124,7 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync)
 	 * otherwise, if only one CPU is allowed and it is skipped before
 	 * @curr->cpu is set, then @best->cpu will be garbage.
 	 */
-	for_each_cpu_and(cpu, p->cpus_allowed, cpu_active_mask) {
+	for_each_cpu_and(cpu, &p->cpus_allowed, cpu_active_mask) {
 		/* Use the free candidate slot for @curr */
 		struct cass_cpu_cand *curr = &cands[cidx];
 		struct cpuidle_state *idle_state;
