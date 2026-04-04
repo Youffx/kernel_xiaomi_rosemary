@@ -28,12 +28,6 @@ void sync_entity_load_avg(struct sched_entity *se);
 
 #ifdef CONFIG_SCHED_CASS
 #include "cass.c"
-/* Use CASS. A dummy wrapper ensures the replaced function is still "used". */
-static inline void *select_task_rq_fair_dummy(void)
-{
-	return (void *)select_task_rq_fair;
-}
-#define select_task_rq_fair cass_select_task_rq_fair
 #endif /* CONFIG_SCHED_CASS */
 
 
@@ -12184,7 +12178,11 @@ const struct sched_class fair_sched_class = {
 	.put_prev_task		= put_prev_task_fair,
 
 #ifdef CONFIG_SMP
+#ifdef CONFIG_SCHED_CASS
+	.select_task_rq		= cass_select_task_rq_fair,
+#else
 	.select_task_rq		= select_task_rq_fair,
+#endif
 	.migrate_task_rq	= migrate_task_rq_fair,
 
 	.rq_online		= rq_online_fair,
