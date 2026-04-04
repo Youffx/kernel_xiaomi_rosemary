@@ -26,10 +26,12 @@
 #endif /* CONFIG_SCHED_CASS */
 
 #include <trace/events/sched.h>
+#ifdef CONFIG_SCHED_CASS
 extern int cass_select_task_rq_fair(struct task_struct *p,
 				    int prev_cpu,
 				    int sd_flag,
 				    int wake_flags);
+#endif
 
 /*
  * Targeted preemption latency for CPU-bound tasks:
