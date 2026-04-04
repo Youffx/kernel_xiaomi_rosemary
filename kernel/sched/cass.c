@@ -1,6 +1,3 @@
-#include "sched.h"
-#include <linux/sched.h>
-#include <linux/sched/topology.h>
 #include <linux/cpumask.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
