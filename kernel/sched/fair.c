@@ -21,6 +21,9 @@
  *  Copyright (C) 2007 Red Hat, Inc., Peter Zijlstra
  */
 #include "sched.h"
+#ifdef CONFIG_SCHED_CASS
+#include "cass.c"
+#endif /* CONFIG_SCHED_CASS */
 
 #include <trace/events/sched.h>
 extern int cass_select_task_rq_fair(struct task_struct *p,
@@ -12165,10 +12168,6 @@ static unsigned int get_rr_interval_fair(struct rq *rq, struct task_struct *task
 
 	return rr_interval;
 }
-
-#ifdef CONFIG_SCHED_CASS
-#include "cass.c"
-#endif /* CONFIG_SCHED_CASS */
 
 /*
  * All the scheduling class methods:
