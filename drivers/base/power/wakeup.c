@@ -28,12 +28,6 @@ suspend_state_t pm_suspend_target_state;
 #define pm_suspend_target_state	(PM_SUSPEND_ON)
 #endif
 
-<<<<<<< HEAD
-=======
-#define list_for_each_entry_rcu_locked(pos, head, member) \
-	list_for_each_entry_rcu(pos, head, member, \
-		srcu_read_lock_held(&wakeup_srcu))
-
 #ifdef CONFIG_BOEFFLA_WL_BLOCKER
 char list_wl[255];
 char list_wl_search[257];
@@ -41,7 +35,6 @@ bool wl_blocker_active = false;
 bool wl_blocker_debug = false;
 #endif
 
->>>>>>> a8b17c2f9d7f (boeffla_wl_blocker: add generic wakelock blocker driver v1.0.0)
 /*
  * If set, the suspend/hibernate code will abort transitions to a sleep state
  * if wakeup events are registered during or immediately before the transition.
@@ -914,17 +907,11 @@ void pm_print_active_wakeup_sources(void)
 	srcuidx = srcu_read_lock(&wakeup_srcu);
 	list_for_each_entry_rcu(ws, &wakeup_sources, entry) {
 		if (ws->active) {
-<<<<<<< HEAD
-			pr_info("active wakeup source: %s\n", ws->name);
-			active = 1;
-=======
-			pm_pr_dbg("active wakeup source: %s\n", ws->name);
 			pr_info("active wakeup source: %s\n", ws->name);
 #ifdef CONFIG_BOEFFLA_WL_BLOCKER
 			if (!check_for_block(ws))	// AP: check if wakelock is on wakelock blocker list
 #endif
 				active = 1;
->>>>>>> a8b17c2f9d7f (boeffla_wl_blocker: add generic wakelock blocker driver v1.0.0)
 		} else if (!active &&
 			   (!last_activity_ws ||
 			    ktime_to_ns(ws->last_time) >
