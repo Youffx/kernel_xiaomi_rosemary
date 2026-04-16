@@ -1696,20 +1696,32 @@ static inline bool may_mandlock(void)
 }
 #endif
 
+/**
+ * path_mounted - check whether path is mounted
+ * @path: path to check
+ *
+ * Determine whether @path refers to the root of a mount.
+ *
+ * Return: true if @path is the root of a mount, false if not.
+ */
+static inline bool path_mounted(const struct path *path)
+{
+	return path->mnt->mnt_root == path->dentry;
+}
+
 static int can_umount(const struct path *path, int flags)
 {
 	struct mount *mnt = real_mount(path->mnt);
-	struct super_block *sb = path->dentry->d_sb;
 
 	if (!may_mount())
 		return -EPERM;
-	if (path->dentry != path->mnt->mnt_root)
+	if (!path_mounted(path))
 		return -EINVAL;
 	if (!check_mnt(mnt))
 		return -EINVAL;
 	if (mnt->mnt.mnt_flags & MNT_LOCKED) /* Check optimistically */
 		return -EINVAL;
-	if (flags & MNT_FORCE && !ns_capable(sb->s_user_ns, CAP_SYS_ADMIN))
+	if (flags & MNT_FORCE && !capable(CAP_SYS_ADMIN))
 		return -EPERM;
 	return 0;
 }
@@ -1723,12 +1735,10 @@ int path_umount(struct path *path, int flags)
 	ret = can_umount(path, flags);
 	if (!ret)
 		ret = do_umount(mnt, flags);
-
+	
 	/* we mustn't call path_put() as that would clear mnt_expiry_mark */
 	dput(path->dentry);
 	mntput_no_expire(mnt);
-	if (!ret)
-		sys_umount_trace_print(mnt, flags);
 	return ret;
 }
 
