@@ -611,7 +611,7 @@ CFLAGS_PGO_CLANG := -fprofile-generate
 export CFLAGS_PGO_CLANG
 
 ifeq ($(CONFIG_PGO_GEN),y)
-CFLAGS_GCOV := -fprofile-generate -fkernel-pgo
+CFLAGS_GCOV := -fprofile-generate
 else
 CFLAGS_GCOV := --coverage
 endif
