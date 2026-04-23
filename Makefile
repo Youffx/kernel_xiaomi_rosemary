@@ -690,8 +690,6 @@ else
 KBUILD_CFLAGS   += -O2
 endif
 
-<<<<<<< HEAD
-=======
 ifdef CONFIG_CC_WERROR
 KBUILD_CFLAGS  += -Werror
 endif
@@ -708,7 +706,6 @@ KBUILD_CFLAGS	+=	-fprofile-use \
 endif
 endif
 
->>>>>>> db93572274f3 (PGO: Add value profile support for kernel.)
 # Tell gcc to never replace conditional load with a non-conditional one
 KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
 KBUILD_CFLAGS	+= $(call cc-option,-fno-allow-store-data-races)
