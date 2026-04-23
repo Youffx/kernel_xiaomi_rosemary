@@ -696,13 +696,10 @@ endif
 
 # Use generated profiles from profiling with CONFIG_PGO_GEN or CONFIG_PGO_CLANG to optimize the kernel
 ifeq ($(CONFIG_PGO_USE),y)
-ifeq ($(cc-name),clang)
-KBUILD_CFLAGS	+=	-fprofile-use=vmlinux.profdata
-else
-KBUILD_CFLAGS	+=	-fprofile-use \
-			-fprofile-correction \
-			-Wno-error=coverage-mismatch
-endif
+    KBUILD_CFLAGS += -fprofile-use=$(srctree)/vmlinux.profdata
+    KBUILD_CFLAGS += -Wno-profile-instr-out-of-date
+    KBUILD_CFLAGS += -Wno-profile-instr-unprofiled
+    KBUILD_CFLAGS += -Wno-error=profile-instr-out-of-date
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one
