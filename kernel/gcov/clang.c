@@ -382,27 +382,11 @@ size_t convert_to_gcda(char *buffer, struct gcov_info *info)
 		pos += store_gcov_u32(buffer, pos, 3);
 		pos += store_gcov_u32(buffer, pos, fi_ptr->ident);
 		pos += store_gcov_u32(buffer, pos, fi_ptr->checksum);
-<<<<<<< HEAD
-#if CONFIG_CLANG_VERSION < 110000
-		if (fi_ptr->use_extra_checksum)
-<<<<<<< HEAD
-			pos += store_gcov_u32(buffer, pos,
-					fi_ptr->cfg_checksum);
-=======
-			pos += store_gcov_u32(buffer, pos, fi_ptr->cfg_checksum);
-#else
 		pos += store_gcov_u32(buffer, pos, fi_ptr->cfg_checksum);
-#endif
->>>>>>> 86bc32692bfd (BACKPORT: gcov: re-fix clang-11+ support)
-
-=======
-		pos += store_gcov_u32(buffer, pos, fi_ptr->cfg_checksum);
->>>>>>> 5d2b7a8ba78b (BACKPORT: gcov: clang: drop support for clang-10 and older)
 		pos += store_gcov_u32(buffer, pos, GCOV_TAG_COUNTER_BASE);
 		pos += store_gcov_u32(buffer, pos, fi_ptr->num_counters * 2);
 		for (i = 0; i < fi_ptr->num_counters; i++)
-			pos += store_gcov_u64(buffer, pos,
-					fi_ptr->counters[i]);
+			pos += store_gcov_u64(buffer, pos, fi_ptr->counters[i]);
 	}
 
 	return pos;
