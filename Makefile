@@ -701,7 +701,6 @@ KBUILD_CFLAGS	+=	-fprofile-use=vmlinux.profdata
 else
 KBUILD_CFLAGS	+=	-fprofile-use \
 			-fprofile-correction \
-			-fprofile-partial-training \
 			-Wno-error=coverage-mismatch
 endif
 endif
