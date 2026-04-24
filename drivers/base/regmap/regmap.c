@@ -2146,7 +2146,7 @@ static int _regmap_range_multi_paged_reg_write(struct regmap *map,
 		 * page.
 		 */
 
-		if (page_change || regs[i].delay_us) {
+		 if (page_change || regs[i].delay_us) {
 
 				/* For situations where the first write requires
 				 * a delay we need to make sure we don't call
@@ -2161,8 +2161,12 @@ static int _regmap_range_multi_paged_reg_write(struct regmap *map,
 				if (ret != 0)
 					return ret;
 
-				if (regs[i].delay_us)
-					udelay(regs[i].delay_us);
+				if (regs[i].delay_us) {
+					if (regs[i].delay_us > 2000)
+						mdelay((regs[i].delay_us + 999) / 1000);
+					else
+						udelay(regs[i].delay_us);
+				}
 
 				base += n;
 				n = 0;
@@ -2177,7 +2181,7 @@ static int _regmap_range_multi_paged_reg_write(struct regmap *map,
 					page_change = 0;
 				}
 
-		}
+			}
 
 	}
 	if (n > 0)
@@ -2198,8 +2202,12 @@ static int _regmap_multi_reg_write(struct regmap *map,
 			if (ret != 0)
 				return ret;
 
-			if (regs[i].delay_us)
-				udelay(regs[i].delay_us);
+			if (regs[i].delay_us) {
+				if (regs[i].delay_us > 2000)
+					mdelay((regs[i].delay_us + 999) / 1000);
+				else
+					udelay(regs[i].delay_us);
+			}
 		}
 		return 0;
 	}
