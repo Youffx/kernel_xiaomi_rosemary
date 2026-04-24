@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 ccflags-y += -Wno-constant-logical-operand
 
+KBUILD_CFLAGS := $(filter-out -fprofile-use=$(srctree)/vmlinux.profdata, $(KBUILD_CFLAGS))
+
 ifdef CONFIG_FUNCTION_TRACER
 CFLAGS_REMOVE_clock.o = $(CC_FLAGS_FTRACE)
 endif
