@@ -85,7 +85,10 @@ static struct onewire_gpio_data *g_onewire_data;
 
 void Delay_us(unsigned int T)
 {
-	udelay(T);
+	if (T > 2000)
+		mdelay(T / 1000);
+	else
+		udelay(T);
 }
 EXPORT_SYMBOL(Delay_us);
 
@@ -97,21 +100,21 @@ EXPORT_SYMBOL(Delay_ns);
 
 void Software_Reset(void)
 {
-        unsigned int i;
-        static int step = 0;
+	unsigned int i;
+	static int step = 0;
 
-        if(step > 2){
-          return;
-        }
+	if (step > 2) {
+		return;
+	}
 
-        ONE_WIRE_CONFIG_OUT;
-        ONE_WIRE_OUT_LOW;
-        for (i = 0; i < 4000; i++)
-          Delay_us(100);            // Pulldown for 400ms
-        ONE_WIRE_OUT_HIGH;
-        for (i = 0; i < 4000; i++)  //Pullup for 400ms
-          Delay_us(100);
-        step++;
+	ONE_WIRE_CONFIG_OUT;
+	ONE_WIRE_OUT_LOW;
+	for (i = 0; i < 4000; i++)
+		Delay_us(100); // Pulldown for 400ms
+	ONE_WIRE_OUT_HIGH;
+	for (i = 0; i < 4000; i++) // Pullup for 400ms
+		Delay_us(100);
+	step++;
 }
 EXPORT_SYMBOL(Software_Reset);
 
