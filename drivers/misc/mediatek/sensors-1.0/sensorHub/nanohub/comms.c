@@ -345,12 +345,8 @@ int nanohub_comms_rx_retrans_boottime(struct nanohub_data *data, u32 cmd,
 		if (ret == ERROR_NACK) {
 			retrans_cnt--;
 			delay += retrans_delay;
-			if (retrans_cnt >= 0) {
-				if (retrans_delay > 2000)
-					mdelay((retrans_delay + 999) / 1000);
-				else
-					udelay(retrans_delay);
-			}
+			if (retrans_cnt >= 0)
+				udelay(retrans_delay);
 		} else if (ret == ERROR_BUSY) {
 			usleep_range(100000, 200000);
 		}
@@ -396,12 +392,8 @@ int nanohub_comms_tx_rx_retrans(struct nanohub_data *data, u32 cmd,
 		if (ret == ERROR_NACK) {
 			retrans_cnt--;
 			delay += retrans_delay;
-			if (retrans_cnt >= 0) {
-				if (retrans_delay > 2000)
-					mdelay((retrans_delay + 999) / 1000);
-				else
-					udelay(retrans_delay);
-			}
+			if (retrans_cnt >= 0)
+				udelay(retrans_delay);
 		} else if (ret == ERROR_BUSY) {
 			usleep_range(100000, 200000);
 		}
