@@ -697,6 +697,7 @@ endif
 # Use generated profiles from profiling with CONFIG_PGO_GEN or CONFIG_PGO_CLANG to optimize the kernel
 ifeq ($(CONFIG_PGO_USE),y)
 KBUILD_CFLAGS	+=	-fprofile-use=$(srctree)/vmlinux.profdata
+KBUILD_CFLAGS	+=	-Wno-error=backend-plugin
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one
