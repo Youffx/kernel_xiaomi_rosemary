@@ -2356,8 +2356,14 @@ static void __mt_gpufreq_volt_switch(
 		return;
 	}
 
-	final_steps = (vgpu_steps > vsram_steps) ? vgpu_steps : vsram_steps;
-	udelay(final_steps * sfchg_rate + 52);
+final_steps = (vgpu_steps > vsram_steps) ? vgpu_steps : vsram_steps;
+	{
+		unsigned int delay_us = final_steps * sfchg_rate + 52;
+		if (delay_us > 2000)
+			mdelay((delay_us + 999) / 1000);
+		else
+			udelay(delay_us);
+	}
 #else
 	if (vgpu_new > vgpu_old) {
 		vgpu_steps = ((vgpu_new - vgpu_old) / PMIC_STEP) + 1;
@@ -2367,13 +2373,25 @@ static void __mt_gpufreq_volt_switch(
 				g_pmic->reg_vsram_gpu,
 				vsram_gpu_new * 10,
 				VSRAM_GPU_MAX_VOLT * 10 + 125);
-		udelay(vsram_steps * g_vsram_sfchg_rrate + 52);
+		{
+			unsigned int delay_us = vsram_steps * g_vsram_sfchg_rrate + 52;
+			if (delay_us > 2000)
+				mdelay((delay_us + 999) / 1000);
+			else
+				udelay(delay_us);
+		}
 
 		regulator_set_voltage(
 				g_pmic->reg_vgpu,
 				vgpu_new * 10,
 				VGPU_MAX_VOLT * 10 + 125);
-		udelay(vgpu_steps * g_vgpu_sfchg_rrate + 52);
+		{
+			unsigned int delay_us = vgpu_steps * g_vgpu_sfchg_rrate + 52;
+			if (delay_us > 2000)
+				mdelay((delay_us + 999) / 1000);
+			else
+				udelay(delay_us);
+		}
 
 	} else if (vgpu_new < vgpu_old) {
 		vgpu_steps = ((vgpu_old - vgpu_new) / PMIC_STEP) + 1;
@@ -2383,13 +2401,24 @@ static void __mt_gpufreq_volt_switch(
 				g_pmic->reg_vgpu,
 				vgpu_new * 10,
 				VGPU_MAX_VOLT * 10 + 125);
-		udelay(vgpu_steps * g_vgpu_sfchg_frate + 52);
+		{
+			unsigned int delay_us = vgpu_steps * g_vgpu_sfchg_frate + 52;
+			if (delay_us > 2000)
+				mdelay((delay_us + 999) / 1000);
+			else
+				udelay(delay_us);
+		}
 
 		regulator_set_voltage(
 				g_pmic->reg_vsram_gpu,
 				vsram_gpu_new * 10,
 				VSRAM_GPU_MAX_VOLT * 10 + 125);
-		udelay(vsram_steps * g_vsram_sfchg_frate + 52);
+		{
+			unsigned int delay_us = vsram_steps * g_vsram_sfchg_frate + 52;
+			if (delay_us > 2000)
+				mdelay((delay_us + 999) / 1000);
+			else
+				udelay(delay_us);
 
 	} else {
 		/* voltage no change */
