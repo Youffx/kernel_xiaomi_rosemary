@@ -698,14 +698,16 @@ endif
 ifeq ($(CONFIG_PGO_USE),y)
     KBUILD_CFLAGS += -fprofile-use=$(srctree)/vmlinux.profdata
     
-    KBUILD_CFLAGS += -Wno-profile-instr-out-of-date
-    KBUILD_CFLAGS += -Wno-profile-instr-unprofiled
+    # KBUILD_CFLAGS += -Wno-profile-instr-out-of-date
+    # KBUILD_CFLAGS += -Wno-profile-instr-unprofiled
     
     KBUILD_CFLAGS += -Wno-backend-plugin
     KBUILD_CFLAGS += -Wno-error=backend-plugin
+    
     KBUILD_CFLAGS += -Wno-error=profile-instr-out-of-date
     KBUILD_CFLAGS += -Wno-error=profile-instr-unprofiled
 endif
+
 
 # Tell gcc to never replace conditional load with a non-conditional one
 KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
