@@ -607,9 +607,15 @@ endif
 # This allow a user to issue only 'make' to build a kernel including modules
 # Defaults to vmlinux, but the arch makefile usually adds further targets
 all: vmlinux
+CFLAGS_PGO_CLANG := -fprofile-generate
+export CFLAGS_PGO_CLANG
 
-CFLAGS_GCOV	:= -fprofile-arcs -ftest-coverage \
-	$(call cc-option,-fno-tree-loop-im) \
+ifeq ($(CONFIG_PGO_GEN),y)
+CFLAGS_GCOV := -fprofile-generate
+else
+CFLAGS_GCOV := --coverage
+endif
+CFLAGS_GCOV += $(call cc-option,-fno-tree-loop-im) \
 	$(call cc-disable-warning,maybe-uninitialized,)
 export CFLAGS_GCOV
 
@@ -682,6 +688,16 @@ ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS   += -Os
 else
 KBUILD_CFLAGS   += -O2
+endif
+
+ifdef CONFIG_CC_WERROR
+KBUILD_CFLAGS  += -Werror
+endif
+
+# Use generated profiles from profiling with CONFIG_PGO_GEN or CONFIG_PGO_CLANG to optimize the kernel
+ifeq ($(CONFIG_PGO_USE),y)
+KBUILD_CFLAGS	+=	-fprofile-use=$(srctree)/vmlinux.profdata
+KBUILD_CFLAGS	+=	-Wno-error=backend-plugin
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one

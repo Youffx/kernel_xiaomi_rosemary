@@ -874,3 +874,7 @@ void __init trap_init(void)
 	register_break_hook(&kasan_break_hook);
 #endif
 }
+void __bad_udelay(void)
+{
+}
+EXPORT_SYMBOL(__bad_udelay);
