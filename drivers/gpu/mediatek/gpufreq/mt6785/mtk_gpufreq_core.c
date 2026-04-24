@@ -2356,7 +2356,7 @@ static void __mt_gpufreq_volt_switch(
 		return;
 	}
 
-	final_steps = (vgpu_steps > vsram_steps) ? vgpu_steps : vsram_steps;
+final_steps = (vgpu_steps > vsram_steps) ? vgpu_steps : vsram_steps;
 	{
 		unsigned int delay_us = final_steps * sfchg_rate + 52;
 		if (delay_us > 2000)
