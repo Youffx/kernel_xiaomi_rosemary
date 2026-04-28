@@ -5418,13 +5418,8 @@ static void __tcp_ack_snd_check(struct sock *sk, int ofo_possible)
 	unsigned long rtt, delay;
 
 	    /* More than one full frame received... */
-<<<<<<< HEAD
 	if (((tp->rcv_nxt - tp->rcv_wup) > inet_csk(sk)->icsk_ack.rcv_mss &&
-=======
-	if (((tp->rcv_nxt - tp->rcv_wup) > (inet_csk(sk)->icsk_ack.rcv_mss) *
-					sysctl_tcp_delack_seg &&
 	     (tp->fast_ack_mode == 1 ||
->>>>>>> b8be3ae3187f (BACKPORT: net: bbr v3)
 	     /* ... and right edge of window advances far enough.
 	      * (tcp_recvmsg() will send ACK otherwise).
 	      * If application uses SO_RCVLOWAT, we want send ack now if

@@ -2451,15 +2451,9 @@ static bool tcp_small_queue_check(struct sock *sk, const struct sk_buff *skb,
 
 	limit = max_t(unsigned long,
 		      2 * skb->truesize,
-<<<<<<< HEAD
-		      sk->sk_pacing_rate >> sk->sk_pacing_shift);
-	limit = min_t(unsigned long, limit,
-		      sock_net(sk)->ipv4.sysctl_tcp_limit_output_bytes);
-=======
 		      sk->sk_pacing_rate >> READ_ONCE(sk->sk_pacing_shift));
 	limit = min_t(unsigned long, limit, sock_net(sk)->ipv4.sysctl_tcp_limit_output_bytes);
 	limit <<= factor;
->>>>>>> b8be3ae3187f (BACKPORT: net: bbr v3)
 
 	if (refcount_read(&sk->sk_wmem_alloc) > limit) {
 		/* Always send skb if rtx queue is empty or has one skb.
