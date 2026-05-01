@@ -111,6 +111,17 @@ config CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
 	  have a look at the help section of that governor. The fallback
 	  governor will be 'performance'.
 
+config CPU_FREQ_DEFAULT_GOV_NEITH
+	bool "neith"
+	select CPU_FREQ_GOV_NEITH
+	help
+	  Sets NEITH as the default CPU frequency governor.
+	  NEITH is a hybrid governor that merges Conservative's 
+	  step-scaling stability with Schedutil's PELT-driven 
+	  responsiveness. It prioritizes a smooth daily UX by 
+	  using gradual frequency drops while allowing 
+	  "emergency jumps" for burst workloads. 
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -208,6 +219,17 @@ config CPU_FREQ_GOV_SCHEDUTIL
 	  both cases.
 
 	  If in doubt, say N.
+
+config CPU_FREQ_GOV_NEITH
+	tristate "'neith' cpufreq governor"
+	depends on CPU_FREQ
+	select CPU_FREQ_GOV_COMMON
+	help
+	  'neith' is a hybrid governor that combines conservative 
+	  step-scaling with PELT-based utilization jumps for 
+	  improved daily responsiveness.
+
+	  If in doubt, say Y.
 
 comment "CPU frequency scaling drivers"
 
