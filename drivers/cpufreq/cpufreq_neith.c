@@ -3,8 +3,8 @@
  * NEITH CPUFreq Governor
  *
  * Hybrid CPU frequency scaling governor combining:
- *  - Conservative step-based scaling
- *  - Scheduler-driven utilization (PELT)
+ * - Conservative step-based scaling
+ * - Scheduler-driven utilization (PELT)
  *
  * Copyright (C) 2026 Youffx <asa.jazal@gmail.com>
  *
@@ -25,31 +25,31 @@
  * (Per-Entity Load Tracking / PELT).
  *
  * Design Goals:
- *  - Smooth and predictable frequency transitions
- *  - Fast reaction to sudden workload spikes
- *  - Reduced UI stutter and frame drops
- *  - Balanced power efficiency and performance
+ * - Smooth and predictable frequency transitions
+ * - Fast reaction to sudden workload spikes
+ * - Reduced UI stutter and frame drops
+ * - Balanced power efficiency and performance
  *
  * Behavior:
- *  - High sustained load:
- *      → Gradual step-based frequency increase (conservative style)
+ * - High sustained load:
+ * → Gradual step-based frequency increase (conservative style)
  *
- *  - Sudden utilization spike (PELT-driven):
- *      → Immediate "emergency jump" toward target frequency
+ * - Sudden utilization spike (PELT-driven):
+ * → Immediate "emergency jump" toward target frequency
  *
- *  - Low / decreasing load:
- *      → Controlled and gradual frequency reduction
+ * - Low / decreasing load:
+ * → Controlled and gradual frequency reduction
  *
- *  - Anti-oscillation:
- *      → Avoids aggressive up/down frequency bouncing
+ * - Anti-oscillation:
+ * → Avoids aggressive up/down frequency bouncing
  *
  * Frequency Target Model:
- *      f_target = (util + util/4) * f_max / 1024
+ * f_target = (util + util/4) * f_max / 1024
  *
  * Notes:
- *  - util is derived from PELT (scheduler utilization signal)
- *  - The "+ util/4" term provides a mild boost (~1.25x) to improve
- *    responsiveness without excessive power cost
+ * - util is derived from PELT (scheduler utilization signal)
+ * - The "+ util/4" term provides a mild boost (~1.25x) to improve
+ * responsiveness without excessive power cost
  *
  * Author: Youffx <asa.jazal@gmail.com>
  * Created: May 1, 2026
@@ -96,7 +96,7 @@ static unsigned int neith_update(struct cpufreq_policy *policy)
 	unsigned int cur;
 	unsigned int next;
 	unsigned long util;
-	unsigned int target_pelt;
+	u64 target_pelt;
 
 	load = dbs_update(policy);
 
@@ -109,18 +109,20 @@ static unsigned int neith_update(struct cpufreq_policy *policy)
 
 	util = neith_get_util(policy->cpu);
 
-	target_pelt = (policy->cpuinfo.max_freq * (util + (util >> 2))) >> 10;
+	target_pelt = (u64)policy->cpuinfo.max_freq * (util + (util >> 2));
+	target_pelt >>= 10;
+	
 	if (target_pelt > policy->max)
 		target_pelt = policy->max;
 
 	if (load > dbs_data->up_threshold) {
 		if (tuners->pelt_boost_enable && target_pelt > (cur + step)) {
-			next = target_pelt;
+			next = (unsigned int)target_pelt;
 		} else {
 			next = cur + step;
 		}
 	} else if (load < tuners->down_threshold) {
-		if (cur > step)
+		if (cur > policy->min + step)
 			next = cur - step;
 		else
 			next = policy->min;

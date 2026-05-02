@@ -22,10 +22,10 @@
  * of scheduler-driven utilization signals (Per-Entity Load Tracking / PELT).
  *
  * The goal is to achieve:
- *  - Efficient power usage during light workloads
- *  - Fast ramp-up under sudden load
- *  - Reduced frequency oscillation
- *  - Better real-world responsiveness compared to traditional governors
+ * - Efficient power usage during light workloads
+ * - Fast ramp-up under sudden load
+ * - Reduced frequency oscillation
+ * - Better real-world responsiveness compared to traditional governors
  *
  * Author: Youffx <asa.jazal@gmail.com>
  * Date: May 1, 2026
