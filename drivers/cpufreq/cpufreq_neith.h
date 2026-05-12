@@ -15,18 +15,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- * Description:
- * NEITH is a hybrid CPUFreq governor designed for balanced daily usage
- * on mobile devices. It blends the smooth and stable frequency scaling
- * characteristics of the conservative governor with the responsiveness
- * of scheduler-driven utilization signals (Per-Entity Load Tracking / PELT).
- *
- * The goal is to achieve:
- * - Efficient power usage during light workloads
- * - Fast ramp-up under sudden load
- * - Reduced frequency oscillation
- * - Better real-world responsiveness compared to traditional governors
- *
  * Author: Youffx <asa.jazal@gmail.com>
  * Date: May 1, 2026
  */
@@ -36,9 +24,19 @@
 
 #include <linux/cpufreq.h>
 
-#define NEITH_DEF_UP_THRESHOLD      80
-#define NEITH_DEF_DOWN_THRESHOLD    40
-#define NEITH_DEF_FREQ_STEP         5
+#define NEITH_DEF_UP_THRESHOLD		82
+#define NEITH_DEF_DOWN_THRESHOLD	38
+
+#define NEITH_DEF_FREQ_STEP		5
+
+#define NEITH_UTIL_HIGH		850
+#define NEITH_UTIL_MID		650
+#define NEITH_UTIL_LOW		200
+
+#define NEITH_UP_RATE_LIMIT_US		50000
+#define NEITH_DOWN_RATE_LIMIT_US	20000
+
+#define NEITH_HYSTERESIS_PERCENT	2
 
 struct neith_tuners {
 	unsigned int up_threshold;

@@ -57,14 +57,19 @@
  */
 
 #include <linux/slab.h>
-#include <linux/sched/cpufreq.h>
+#include <linux/kernel.h>
+#include <linux/ktime.h>
 #include <linux/sched.h>
+#include <linux/sched/cpufreq.h>
+
 #include "cpufreq_governor.h"
 #include "cpufreq_neith.h"
 
 struct neith_policy {
 	struct policy_dbs_info policy_dbs;
 	unsigned int requested_freq;
+	unsigned long prev_util;
+	u64 last_freq_update_time;
 };
 
 static inline struct neith_policy *to_neith(struct policy_dbs_info *p)
@@ -75,8 +80,11 @@ static inline struct neith_policy *to_neith(struct policy_dbs_info *p)
 static unsigned long neith_get_util(int cpu)
 {
 	struct rq *rq = cpu_rq(cpu);
-	unsigned long util = cpu_util_cfs(rq);
-	unsigned long max = arch_scale_cpu_capacity(NULL, cpu);
+	unsigned long util;
+	unsigned long max;
+
+	util = cpu_util_cfs(rq);
+	max = arch_scale_cpu_capacity(NULL, cpu);
 
 	if (!max)
 		return 0;
@@ -84,24 +92,71 @@ static unsigned long neith_get_util(int cpu)
 	return (util * 1024) / max;
 }
 
+static bool neith_up_rate_limit(struct neith_policy *np)
+{
+	u64 now;
+
+	now = ktime_get_ns();
+
+	if (now - np->last_freq_update_time <
+		((u64)NEITH_UP_RATE_LIMIT_US * NSEC_PER_USEC))
+		return true;
+
+	return false;
+}
+
+static bool neith_down_rate_limit(struct neith_policy *np)
+{
+	u64 now;
+
+	now = ktime_get_ns();
+
+	if (now - np->last_freq_update_time <
+		((u64)NEITH_DOWN_RATE_LIMIT_US * NSEC_PER_USEC))
+		return true;
+
+	return false;
+}
+
+static unsigned int neith_apply_hysteresis(unsigned int cur,
+					   unsigned int next,
+					   unsigned int step)
+{
+	if (next > cur) {
+		if ((next - cur) < step)
+			return cur;
+	} else {
+		if ((cur - next) < step)
+			return cur;
+	}
+
+	return next;
+}
+
 static unsigned int neith_update(struct cpufreq_policy *policy)
 {
 	struct policy_dbs_info *p = policy->governor_data;
-	struct neith_policy *dbs = to_neith(p);
+	struct neith_policy *np = to_neith(p);
+
 	struct dbs_data *dbs_data = p->dbs_data;
 	struct neith_tuners *tuners = dbs_data->tuners;
 
 	unsigned int load;
 	unsigned int step;
+
 	unsigned int cur;
 	unsigned int next;
+
 	unsigned long util;
+	unsigned long smooth_util;
+
 	u64 target_pelt;
 
 	load = dbs_update(policy);
 
 	step = (tuners->freq_step * policy->cpuinfo.max_freq) / 100;
-	if (step == 0)
+
+	if (!step)
 		step = policy->cpuinfo.min_freq;
 
 	cur = policy->cur;
@@ -109,23 +164,57 @@ static unsigned int neith_update(struct cpufreq_policy *policy)
 
 	util = neith_get_util(policy->cpu);
 
-	target_pelt = (u64)policy->cpuinfo.max_freq * (util + (util >> 2));
+	smooth_util = (util + np->prev_util) >> 1;
+	np->prev_util = smooth_util;
+
+	target_pelt =
+		(u64)policy->cpuinfo.max_freq *
+		(smooth_util + (smooth_util >> 2));
+
 	target_pelt >>= 10;
-	
+
 	if (target_pelt > policy->max)
 		target_pelt = policy->max;
 
-	if (load > dbs_data->up_threshold) {
-		if (tuners->pelt_boost_enable && target_pelt > (cur + step)) {
-			next = (unsigned int)target_pelt;
-		} else {
-			next = cur + step;
+	if (load > dbs_data->up_threshold ||
+		smooth_util > NEITH_UTIL_HIGH) {
+
+		if (!neith_up_rate_limit(np)) {
+
+			if (tuners->pelt_boost_enable &&
+				target_pelt > (cur + step * 2)) {
+
+				next = cur + (step * 2);
+
+				if (next > target_pelt)
+					next = (unsigned int)target_pelt;
+
+			} else {
+				next = cur + step;
+			}
 		}
-	} else if (load < tuners->down_threshold) {
-		if (cur > policy->min + step)
-			next = cur - step;
-		else
-			next = policy->min;
+
+	} else if (load < tuners->down_threshold &&
+		   smooth_util < NEITH_UTIL_MID) {
+
+		if (!neith_down_rate_limit(np)) {
+
+			if (load < 20 &&
+				smooth_util < NEITH_UTIL_LOW) {
+
+				if (cur > policy->min + (step * 2))
+					next = cur - (step * 2);
+				else
+					next = policy->min;
+
+			} else {
+
+				if (cur > policy->min + step)
+					next = cur - step;
+				else
+					next = policy->min;
+			}
+		}
 	}
 
 	if (next > policy->max)
@@ -134,16 +223,32 @@ static unsigned int neith_update(struct cpufreq_policy *policy)
 	if (next < policy->min)
 		next = policy->min;
 
-	if (next != cur) {
-		__cpufreq_driver_target(policy, next,
-			next > cur ? CPUFREQ_RELATION_H : CPUFREQ_RELATION_L);
-		dbs->requested_freq = next;
-	}
+	next = neith_apply_hysteresis(cur, next, step);
+
+	if (next == cur)
+		return dbs_data->sampling_rate;
+
+	if (abs(next - cur) <
+		((cur * NEITH_HYSTERESIS_PERCENT) / 100))
+		return dbs_data->sampling_rate;
+
+	__cpufreq_driver_target(policy,
+				next,
+				next > cur ?
+				CPUFREQ_RELATION_H :
+				CPUFREQ_RELATION_L);
+
+	np->requested_freq = next;
+	np->last_freq_update_time = ktime_get_ns();
 
 	return dbs_data->sampling_rate;
 }
 
-static ssize_t show_down_threshold(struct gov_attr_set *attr_set, char *buf)
+gov_show_one_common(up_threshold);
+gov_show_one_common(sampling_rate);
+
+static ssize_t show_down_threshold(struct gov_attr_set *attr_set,
+				   char *buf)
 {
 	struct dbs_data *dbs = to_dbs_data(attr_set);
 	struct neith_tuners *tuners = dbs->tuners;
@@ -151,41 +256,52 @@ static ssize_t show_down_threshold(struct gov_attr_set *attr_set, char *buf)
 	return sprintf(buf, "%u\n", tuners->down_threshold);
 }
 
-static ssize_t store_down_threshold(struct gov_attr_set *attr_set, const char *buf, size_t count)
+static ssize_t store_down_threshold(struct gov_attr_set *attr_set,
+				    const char *buf,
+				    size_t count)
 {
 	struct dbs_data *dbs = to_dbs_data(attr_set);
 	struct neith_tuners *tuners = dbs->tuners;
+
 	unsigned int val;
 
 	if (kstrtouint(buf, 10, &val))
 		return -EINVAL;
 
 	tuners->down_threshold = val;
+
 	return count;
 }
 
-static ssize_t show_pelt_boost(struct gov_attr_set *attr_set, char *buf)
+static ssize_t show_pelt_boost(struct gov_attr_set *attr_set,
+			       char *buf)
 {
 	struct dbs_data *dbs = to_dbs_data(attr_set);
 	struct neith_tuners *tuners = dbs->tuners;
 
-	return sprintf(buf, "%u\n", tuners->pelt_boost_enable);
+	return sprintf(buf, "%u\n",
+		       tuners->pelt_boost_enable);
 }
 
-static ssize_t store_pelt_boost(struct gov_attr_set *attr_set, const char *buf, size_t count)
+static ssize_t store_pelt_boost(struct gov_attr_set *attr_set,
+				const char *buf,
+				size_t count)
 {
 	struct dbs_data *dbs = to_dbs_data(attr_set);
 	struct neith_tuners *tuners = dbs->tuners;
+
 	unsigned int val;
 
 	if (kstrtouint(buf, 10, &val))
 		return -EINVAL;
 
-	tuners->pelt_boost_enable = val;
+	tuners->pelt_boost_enable = !!val;
+
 	return count;
 }
 
-static ssize_t show_freq_step(struct gov_attr_set *attr_set, char *buf)
+static ssize_t show_freq_step(struct gov_attr_set *attr_set,
+			      char *buf)
 {
 	struct dbs_data *dbs = to_dbs_data(attr_set);
 	struct neith_tuners *tuners = dbs->tuners;
@@ -193,21 +309,28 @@ static ssize_t show_freq_step(struct gov_attr_set *attr_set, char *buf)
 	return sprintf(buf, "%u\n", tuners->freq_step);
 }
 
-static ssize_t store_freq_step(struct gov_attr_set *attr_set, const char *buf, size_t count)
+static ssize_t store_freq_step(struct gov_attr_set *attr_set,
+			       const char *buf,
+			       size_t count)
 {
 	struct dbs_data *dbs = to_dbs_data(attr_set);
 	struct neith_tuners *tuners = dbs->tuners;
+
 	unsigned int val;
 
 	if (kstrtouint(buf, 10, &val))
 		return -EINVAL;
 
+	if (!val)
+		val = 1;
+
+	if (val > 20)
+		val = 20;
+
 	tuners->freq_step = val;
+
 	return count;
 }
-
-gov_show_one_common(up_threshold);
-gov_show_one_common(sampling_rate);
 
 gov_attr_rw(up_threshold);
 gov_attr_rw(sampling_rate);
@@ -226,10 +349,11 @@ static struct attribute *neith_attributes[] = {
 
 static struct policy_dbs_info *neith_alloc(void)
 {
-	struct neith_policy *p;
+	struct neith_policy *np;
 
-	p = kzalloc(sizeof(*p), GFP_KERNEL);
-	return p ? &p->policy_dbs : NULL;
+	np = kzalloc(sizeof(*np), GFP_KERNEL);
+
+	return np ? &np->policy_dbs : NULL;
 }
 
 static void neith_free(struct policy_dbs_info *policy)
@@ -242,6 +366,7 @@ static int neith_init(struct dbs_data *dbs_data)
 	struct neith_tuners *tuners;
 
 	tuners = kzalloc(sizeof(*tuners), GFP_KERNEL);
+
 	if (!tuners)
 		return -ENOMEM;
 
@@ -263,19 +388,30 @@ static void neith_exit(struct dbs_data *dbs_data)
 
 static void neith_start(struct cpufreq_policy *policy)
 {
-	struct neith_policy *p = to_neith(policy->governor_data);
+	struct neith_policy *np;
 
-	p->requested_freq = policy->cur;
+	np = to_neith(policy->governor_data);
+
+	np->requested_freq = policy->cur;
+	np->prev_util = 0;
+	np->last_freq_update_time = ktime_get_ns();
 }
 
 static struct dbs_governor neith_gov = {
 	.gov = CPUFREQ_DBS_GOVERNOR_INITIALIZER("neith"),
-	.kobj_type = { .default_attrs = neith_attributes },
+
+	.kobj_type = {
+		.default_attrs = neith_attributes,
+	},
+
 	.gov_dbs_update = neith_update,
+
 	.alloc = neith_alloc,
 	.free = neith_free,
+
 	.init = neith_init,
 	.exit = neith_exit,
+
 	.start = neith_start,
 };
 
@@ -294,13 +430,17 @@ MODULE_DESCRIPTION("NEITH Hybrid CPUFreq Governor");
 MODULE_LICENSE("GPL");
 
 #ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_NEITH
+
 struct cpufreq_governor *cpufreq_default_governor(void)
 {
 	return &neith_gov.gov;
 }
 
 fs_initcall(neith_init_call);
+
 #else
+
 module_init(neith_init_call);
 module_exit(neith_exit_call);
+
 #endif
