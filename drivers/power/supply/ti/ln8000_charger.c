@@ -1659,6 +1659,7 @@ static int ln8000_probe(struct i2c_client *client, const struct i2c_device_id *i
 							client->irq, ret);
             goto err_wakeup;
 		}
+		enable_irq_wake(client->irq);
 	} else {
         ln_info("don't support isr(irq=%d)\n", info->client->irq);
     }
@@ -1745,17 +1746,9 @@ static void ln8000_shutdown(struct i2c_client *client)
 static int ln8000_suspend(struct device *dev)
 {
     struct ln8000_info *info = dev_get_drvdata(dev);
-    int ret;
 
-    if (device_may_wakeup(dev) && info->client->irq) {
-        ret = enable_irq_wake(info->client->irq);
-        if (ret) {
-            ln_err("failed to enable irq wake, irq=%d ret=%d\n",
-                   info->client->irq, ret);
-        } else {
-            info->irq_wake_enabled = true;
-        }
-    }
+    if (device_may_wakeup(dev) && info->client->irq)
+        enable_irq_wake(info->client->irq);
 
     ln8000_irq_sleep(info, 1);
 
@@ -1765,17 +1758,9 @@ static int ln8000_suspend(struct device *dev)
 static int ln8000_resume(struct device *dev)
 {
     struct ln8000_info *info = dev_get_drvdata(dev);
-    int ret;
 
-    if (info->irq_wake_enabled && info->client->irq) {
-        ret = disable_irq_wake(info->client->irq);
-        if (ret) {
-            ln_err("failed to disable irq wake, irq=%d ret=%d\n",
-                   info->client->irq, ret);
-        } else {
-            info->irq_wake_enabled = false;
-        }
-    }
+    if (device_may_wakeup(dev) && info->client->irq)
+        disable_irq_wake(info->client->irq);
 
     ln8000_irq_sleep(info, 0);
 
