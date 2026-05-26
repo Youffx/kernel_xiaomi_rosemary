@@ -1212,19 +1212,19 @@ static struct mount *clone_mnt(struct mount *old, struct dentry *root,
 			//   on mnt->mnt.mnt_flags below, otherwise we find no other ways to identify if this
 			//   mnt->mnt_id is assigned without ida when it is being freed in mnt_free_id()
 			if (flag & CL_COPY_MNT_NS) {
-				mnt = &susfs_alloc_unshare_ksu_vfsmnt(old->mnt_devname, old->mnt_id)->mnt;
+				mnt = susfs_alloc_unshare_ksu_vfsmnt(old->mnt_devname, old->mnt_id);
 				is_mnt_ksu_unshared = true;
 				goto bypass_orig_flow;
 			}
 			// else we just go assign fake mnt_id starting with DEFAULT_KSU_MNT_ID
-			mnt = &susfs_alloc_non_unshare_ksu_vfsmnt(old->mnt_devname)->mnt;
+			mnt = susfs_alloc_non_unshare_ksu_vfsmnt(old->mnt_devname);
 			goto bypass_orig_flow;
 		}
 	}
 	// - We keep checking all processes and if old->mnt_id >= DEFAULT_KSU_MNT_ID,
 	//   go assign fake mnt_id starting with DEFAULT_KSU_MNT_ID
 	if (old->mnt_id >= DEFAULT_KSU_MNT_ID) {
-		mnt = &susfs_alloc_non_unshare_ksu_vfsmnt(old->mnt_devname)->mnt;
+		mnt = susfs_alloc_non_unshare_ksu_vfsmnt(old->mnt_devname);
 		goto bypass_orig_flow;
 	}
 #endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
