@@ -1225,6 +1225,32 @@ DECLARE_RWSEM(uts_sem);
  * Instead we map 3.x to 2.6.40+x, so e.g. 3.0 would be 2.6.40
  * And we map 4.x to 2.6.60+x, so 4.0 would be 2.6.60.
  */
+static int override_release(char __user *release, size_t len)
+{
+	int ret = 0;
+
+	if (current->personality & UNAME26) {
+		const char *rest = UTS_RELEASE;
+		char buf[65] = { 0 };
+		int ndots = 0;
+		unsigned v;
+		size_t copy;
+
+		while (*rest) {
+			if (*rest == '.' && ++ndots >= 3)
+				break;
+			if (!isdigit(*rest) && *rest != '.')
+				break;
+			rest++;
+		}
+		v = ((LINUX_VERSION_CODE >> 8) & 0xff) + 60;
+		copy = clamp_t(size_t, len, 1, sizeof(buf));
+		copy = scnprintf(buf, copy, "2.6.%u%s", v, rest);
+		ret = copy_to_user(release, buf, copy + 1);
+	}
+	return ret;
+}
+
 #ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
 extern struct static_key_false susfs_is_uname_spoof_buffer_set;
 extern void susfs_spoof_uname(struct new_utsname *tmp);
