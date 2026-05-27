@@ -478,6 +478,262 @@ static int vidioc_venc_s_ctrl(struct v4l2_ctrl *ctrl)
 		p->i_p_qp_delta = ctrl->val;
 		ctx->param_change |= MTK_ENCODE_PARAM_I_P_QP_DELTA;
 		break;
+static int vidioc_venc_s_ctrl(struct v4l2_ctrl *ctrl)
+{
+	struct mtk_vcodec_ctx *ctx = ctrl_to_ctx(ctrl);
+	struct mtk_enc_params *p = &ctx->enc_params;
+	int ret = 0;
+
+	mtk_v4l2_debug(4, "[%d] id %d val %d array[0] %d array[1] %d",
+				   ctx->id, ctrl->id, ctrl->val,
+				   ctrl->p_new.p_u32[0], ctrl->p_new.p_u32[1]);
+
+	switch (ctrl->id) {
+	case V4L2_CID_MPEG_VIDEO_BITRATE:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_BITRATE val = %d",
+			       ctrl->val);
+		p->bitrate = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_BITRATE;
+		break;
+	case V4L2_CID_MPEG_MTK_SEC_ENCODE:
+		p->svp_mode = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_SEC_ENCODE;
+		mtk_v4l2_debug(0, "[%d] V4L2_CID_MPEG_MTK_SEC_ENCODE id %d val %d array[0] %d array[1] %d",
+			ctx->id, ctrl->id, ctrl->val,
+		ctrl->p_new.p_u32[0], ctrl->p_new.p_u32[1]);
+		break;
+	case V4L2_CID_MPEG_VIDEO_B_FRAMES:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_B_FRAMES val = %d",
+			       ctrl->val);
+		p->num_b_frame = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_FRAME_RC_ENABLE:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_FRAME_RC_ENABLE val = %d",
+			       ctrl->val);
+		p->rc_frame = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_H264_MAX_QP:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_H264_MAX_QP val = %d",
+			       ctrl->val);
+		p->h264_max_qp = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_HEADER_MODE:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_HEADER_MODE val = %d",
+			       ctrl->val);
+		p->seq_hdr_mode = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_MB_RC_ENABLE:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_MB_RC_ENABLE val = %d",
+			       ctrl->val);
+		p->rc_mb = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_H264_PROFILE:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_H264_PROFILE val = %d",
+			       ctrl->val);
+		if (!vidioc_venc_check_supported_profile_level(
+				V4L2_PIX_FMT_H264, ctrl->val, 1))
+			return -EINVAL;
+		p->profile = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_HEVC_PROFILE:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_HEVC_PROFILE val = %d",
+			       ctrl->val);
+		if (!vidioc_venc_check_supported_profile_level(
+				V4L2_PIX_FMT_H265, ctrl->val, 1))
+			return -EINVAL;
+		p->profile = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_MPEG4_PROFILE:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_MPEG4_PROFILE val = %d",
+			       ctrl->val);
+		if (!vidioc_venc_check_supported_profile_level(
+			    V4L2_PIX_FMT_MPEG4, ctrl->val, 1))
+			return -EINVAL;
+		p->profile = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_H264_LEVEL:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_H264_LEVEL val = %d",
+			       ctrl->val);
+		if (!vidioc_venc_check_supported_profile_level(
+				V4L2_PIX_FMT_H264, ctrl->val, 0))
+			return -EINVAL;
+		p->level = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_HEVC_LEVEL:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_HEVC_LEVEL val = %d",
+			       ctrl->val);
+		if (!vidioc_venc_check_supported_profile_level(
+				V4L2_PIX_FMT_H265, ctrl->val, 0))
+			return -EINVAL;
+		p->level = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_HEVC_TIER:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_HEVC_TIER val = %d",
+			ctrl->val);
+		p->tier = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_MPEG4_LEVEL:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_MPEG4_LEVEL val = %d",
+			       ctrl->val);
+		if (!vidioc_venc_check_supported_profile_level(
+			    V4L2_PIX_FMT_MPEG4, ctrl->val, 0))
+			return -EINVAL;
+		p->level = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_H264_I_PERIOD:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_H264_I_PERIOD val = %d",
+			       ctrl->val);
+		p->intra_period = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_INTRA_PERIOD;
+		break;
+	case V4L2_CID_MPEG_VIDEO_GOP_SIZE:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_GOP_SIZE val = %d",
+			       ctrl->val);
+		p->gop_size = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_GOP_SIZE;
+		break;
+	case V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME:
+		mtk_v4l2_debug(2, "V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME");
+		p->force_intra = 1;
+		ctx->param_change |= MTK_ENCODE_PARAM_FORCE_INTRA;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_SCENARIO:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_SCENARIO: %d",
+			ctrl->val);
+		p->scenario = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_SCENARIO;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_NONREFP:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_NONREFP: %d",
+			ctrl->val);
+		p->nonrefp = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_NONREFP;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_NONREFP_FREQ:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_NONREFP_FREQ: %d",
+			ctrl->val);
+		p->nonrefpfreq = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_NONREFPFREQ;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_DETECTED_FRAMERATE:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_DETECTED_FRAMERATE: %d",
+			ctrl->val);
+		p->detectframerate = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_DETECTED_FRAMERATE;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_RFS_ON:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_RFS_ON: %d",
+			ctrl->val);
+		p->rfs = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_RFS_ON;
+		break;
+	case V4L2_CID_MPEG_VIDEO_PREPEND_SPSPPS_TO_IDR:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_VIDEO_PREPEND_SPSPPS_TO_IDR: %d",
+			ctrl->val);
+		p->prependheader = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_PREPEND_SPSPPS_TO_IDR;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_OPERATION_RATE:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_OPERATION_RATE: %d",
+			ctrl->val);
+		p->operationrate = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_OPERATION_RATE;
+		break;
+	case V4L2_CID_MPEG_VIDEO_BITRATE_MODE:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_VIDEO_BITRATE_MODE: %d",
+			ctrl->val);
+		p->bitratemode = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_BITRATE_MODE;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_ROI_ON:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_ROI_ON: %d",
+			ctrl->val);
+		p->roion = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_ROI_ON;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_GRID_SIZE:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_GRID_SIZE: %d",
+			ctrl->val);
+		p->heif_grid_size = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_GRID_SIZE;
+		break;
+	case V4L2_CID_MPEG_MTK_COLOR_DESC:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_COLOR_DESC: 0x%x",
+			ctrl->val);
+		memcpy(&p->color_desc, ctrl->p_new.p_u32,
+		sizeof(struct mtk_color_desc));
+		ctx->param_change |= MTK_ENCODE_PARAM_COLOR_DESC;
+		break;
+	case V4L2_CID_MPEG_MTK_MAX_WIDTH:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_MAX_WIDTH: %d",
+			ctrl->val);
+		p->max_w = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_MTK_MAX_HEIGHT:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_MAX_HEIGHT: %d",
+			ctrl->val);
+		p->max_h = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_RC_I_FRAME_QP:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_RC_I_FRAME_QP val = %d",
+			ctrl->val);
+		p->i_qp = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_RC_P_FRAME_QP:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_RC_P_FRAME_QP val = %d",
+			ctrl->val);
+		p->p_qp = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_RC_B_FRAME_QP:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_RC_B_FRAME_QP val = %d",
+			ctrl->val);
+		p->b_qp = ctrl->val;
+		break;
+	case V4L2_CID_MPEG_VIDEO_ENABLE_TSVC:
+		mtk_v4l2_debug(0,
+			"V4L2_CID_MPEG_VIDEO_ENABLE_TSVC layer: %d, type: %d\n",
+			ctrl->p_new.p_u32[0], ctrl->p_new.p_u32[1]);
+		if (ctrl->p_new.p_u32[0] == 3)
+			p->tsvc = 1;
+		ctx->param_change |= MTK_ENCODE_PARAM_TSVC;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_RC_MAX_QP:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_RC_MAX_QP: %d",
+			ctrl->val);
+		p->max_qp = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_MAX_QP;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_RC_MIN_QP:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_RC_MIN_QP: %d",
+			ctrl->val);
+		p->min_qp = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_MIN_QP;
+		break;
+	case V4L2_CID_MPEG_MTK_ENCODE_RC_I_P_QP_DELTA:
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MPEG_MTK_ENCODE_RC_I_P_QP_DELTA: %d",
+			ctrl->val);
+		p->i_p_qp_delta = ctrl->val;
+		ctx->param_change |= MTK_ENCODE_PARAM_I_P_QP_DELTA;
+		break;
 	case V4L2_CID_MPEG_MTK_ENCODE_RC_QP_CONTROL_MODE:
 		mtk_v4l2_debug(2,
 			"V4L2_CID_MPEG_MTK_ENCODE_RC_QP_CONTROL_MODE: %d",
@@ -522,6 +778,9 @@ static int vidioc_venc_s_ctrl(struct v4l2_ctrl *ctrl)
 			ctrl->val);
 		p->dummynal = ctrl->val;
 		ctx->param_change |= MTK_ENCODE_PARAM_DUMMY_NAL;
+		break;
+	case 10035243:
+		mtk_v4l2_debug(2, "V4L2_CID custom mtk id %d handled as dummy", ctrl->id);
 		break;
 	default:
 		mtk_v4l2_err("ctrl-id=%d not support!", ctrl->id);
