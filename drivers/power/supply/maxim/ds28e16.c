@@ -340,7 +340,7 @@ short Read_RomID(unsigned char *RomID)
 	}
 
 	if ((ow_reset()) != 0) {
-		ds_err("Failed to reset ds28e16!\n");
+		ds_dbg("Failed to reset ds28e16!\n");
 		ow_reset();
 		Software_Reset();                             //2022/4/18
 		//ds_info("DS28E16_software_reset success from read rom id !\n");
@@ -423,7 +423,7 @@ unsigned char *read_buf, int *read_len, int write_len)
 		ow_reset();
 		Software_Reset();            //2022/4/15
 		mutex_unlock(&ds_cmd_lock); //2022_4_20 updated
-		ds_err("Failed to reset ds28e16!\n");
+		ds_dbg("Failed to reset ds28e16!\n");
 		return ERROR_NO_DEVICE;
 	}
 
