@@ -209,7 +209,6 @@ inline unsigned int cpu_is_fastest(int cpu)
 	struct list_head *pos;
 
 	if (!pod_is_ready()) {
-		printk_deferred("Perf order domain is not ready!\n");
 		return -1;
 	}
 
@@ -224,7 +223,6 @@ inline unsigned int cpu_is_slowest(int cpu)
 	struct list_head *pos;
 
 	if (!pod_is_ready()) {
-		printk_deferred("Perf order domain is not ready!\n");
 		return -1;
 	}
 
@@ -238,7 +236,6 @@ bool is_intra_domain(int prev, int target)
 	struct perf_order_domain *perf_domain = NULL;
 
 	if (!pod_is_ready()) {
-		printk_deferred("Perf order domain is not ready!\n");
 		return 0;
 	}
 

@@ -16,8 +16,8 @@
 
 #define BOEFFLA_WL_BLOCKER_VERSION	"1.1.0"
 
-#define LIST_WL_DEFAULT				"NETLINK;UlrDispSvcFastWL;GCoreFlp;Icing"
+#define LIST_WL_DEFAULT				"situation_wakelock-1;situation_wakelock-2;situation_wakelock-3;situation_wakelock-4;situation_wakelock-6;situation_wakelock-7;situation_wakelock-8;situation_wakelock-10;situation_wakelock-11;ccci_md_log_ctrl;adsp_audio_wakelock;ccci_aud"
 
 #define LENGTH_LIST_WL				255
-#define LENGTH_LIST_WL_DEFAULT		100
+#define LENGTH_LIST_WL_DEFAULT		300
 #define LENGTH_LIST_WL_SEARCH		LENGTH_LIST_WL + LENGTH_LIST_WL_DEFAULT + 5
