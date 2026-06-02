@@ -1021,6 +1021,9 @@ static int ln8000_charger_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TI_BYPASS_MODE_ENABLED:
 		val->intval = 0;
 		break;
+	case POWER_SUPPLY_PROP_TI_SET_BUS_PROTECTION_FOR_QC3:
+		val->intval = 0;
+		break;
     case POWER_SUPPLY_PROP_MODEL_NAME:
         val->strval = (LN8000_IS_PRIMARY(info) ? "ln8000" : "ln8000-secondary");
         break;

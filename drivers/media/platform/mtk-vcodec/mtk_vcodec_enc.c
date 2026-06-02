@@ -523,6 +523,9 @@ static int vidioc_venc_s_ctrl(struct v4l2_ctrl *ctrl)
 		p->dummynal = ctrl->val;
 		ctx->param_change |= MTK_ENCODE_PARAM_DUMMY_NAL;
 		break;
+	case 10035243:
+		mtk_v4l2_debug(2, "V4L2_CID custom mtk id %d handled as dummy", ctrl->id);
+		break;
 	default:
 		mtk_v4l2_err("ctrl-id=%d not support!", ctrl->id);
 		ret = -EINVAL;

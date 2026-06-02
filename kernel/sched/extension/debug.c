@@ -67,16 +67,12 @@ int show_perf_order_domain_info(char *buf, int buf_size)
 	struct perf_order_domain *domain;
 	int len = 0;
 
+	if (!pod_is_ready())
+		return 0;
+
 	len += snprintf(buf+len, buf_size-len,
 		"Sort perf_domains from little to big:\n"
 		);
-
-	if (!pod_is_ready()) {
-		len += snprintf(buf+len, buf_size-len,
-		"Perf order domain is not ready!\n"
-		);
-		return len;
-	}
 
 	for_each_perf_domain_ascending(domain) {
 		len += snprintf(buf+len, buf_size-len,
