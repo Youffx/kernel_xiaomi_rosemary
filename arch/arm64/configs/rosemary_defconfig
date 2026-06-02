@@ -498,4 +498,4 @@ CONFIG_KSU_SUSFS_SUS_KSTAT=y
 # CONFIG_PGO_GEN is not set
 # CONFIG_PGO_CLANG is not set
 # CONFIG_DEBUG_FS is not set
-CONFIG_PGO_USE=y
+# CONFIG_PGO_USE is not set
