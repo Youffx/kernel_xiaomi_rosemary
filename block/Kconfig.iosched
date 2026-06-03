@@ -114,6 +114,9 @@ choice
 	config DEFAULT_SIO
 		bool "SIO" if IOSCHED_SIO=y
 
+	config DEFAULT_ADIOS
+		bool "ADIOS" if MQ_IOSCHED_ADIOS=y
+
 endchoice
 
 config DEFAULT_IOSCHED
@@ -126,6 +129,7 @@ config DEFAULT_IOSCHED
 	default "maple" if DEFAULT_MAPLE
 	default "fiops" if DEFAULT_FIOPS
 	default "sio" if DEFAULT_SIO
+	default "adios" if DEFAULT_ADIOS
 
 config MQ_IOSCHED_DEADLINE
 	tristate "MQ deadline I/O scheduler"
@@ -144,8 +148,8 @@ config MQ_IOSCHED_KYBER
 
 config MQ_IOSCHED_ADIOS
 	tristate "Adaptive Deadline I/O scheduler"
-	default m
-	help
+	default y
+	---help---
 	  The Adaptive Deadline I/O Scheduler (ADIOS) is a multi-queue I/O
 	  scheduler with learning-based adaptive latency control.
 
