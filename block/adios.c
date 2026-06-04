@@ -1640,18 +1640,20 @@ SHRINK_THRESHOLD_ATTR_RW(shrink_at_kreqs,  lm_shrink_at_kreqs,  1, 100000)
 SHRINK_THRESHOLD_ATTR_RW(shrink_at_gbytes, lm_shrink_at_gbytes, 1,   1000)
 SHRINK_THRESHOLD_ATTR_RW(shrink_resist,    lm_shrink_resist,    1,      3)
 
-#define ADIOS_ATTR_RW(name) \
-        { .attr = { .name = #name, .mode = 0644 }, \
-          .show = adios_##name##_show, \
-          .store = adios_##name##_store }
-#define ADIOS_ATTR_RO(name) \
-        { .attr = { .name = #name, .mode = 0444 }, \
-          .show = adios_##name##_show, \
+#define ADIOS_ATTR_RW(_name) \
+        { .attr = { .name = #_name, .mode = 0644 }, \
+          .show = adios_##_name##_show, \
+          .store = adios_##_name##_store }
+
+#define ADIOS_ATTR_RO(_name) \
+        { .attr = { .name = #_name, .mode = 0444 }, \
+          .show = adios_##_name##_show, \
           .store = NULL }
-#define ADIOS_ATTR_WO(name) \
-        { .attr = { .name = #name, .mode = 0200 }, \
+
+#define ADIOS_ATTR_WO(_name) \
+        { .attr = { .name = #_name, .mode = 0200 }, \
           .show = NULL, \
-          .store = adios_##name##_store }
+          .store = adios_##_name##_store }
 
 static struct elv_fs_entry adios_sched_attrs[] = {
         ADIOS_ATTR_RO(batch_actual_max),
