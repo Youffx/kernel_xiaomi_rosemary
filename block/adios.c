@@ -704,7 +704,7 @@ static void adios_merged_requests(struct request_queue *q, struct request *req, 
         remove_request(ad, next);
 }
 
-static bool adios_bio_merge(struct blk_mq_hw_ctx *hctx, struct bio *bio, unsigned int nr_segs) {
+static bool adios_bio_merge(struct blk_mq_hw_ctx *hctx, struct bio *bio) {
         unsigned long flags;
         struct request_queue *q = hctx->queue;
         struct adios_data *ad = q->elevator->elevator_data;
@@ -1163,7 +1163,7 @@ static void update_timer_callback(struct timer_list *t) {
                 latency_model_update(ad, &ad->latency_model[optype]);
 }
 
-static void adios_completed_request(struct request *rq, u64 mq_cycle) {
+static void adios_completed_request(struct request *rq) {
         struct adios_data *ad = rq->q->elevator->elevator_data;
         struct adios_rq_data *rd = get_rq_data(rq);
         u64 now = ktime_get_ns();
