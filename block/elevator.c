@@ -135,18 +135,6 @@ static struct elevator_type *elevator_get(struct request_queue *q,
 	return e;
 }
 
-static struct elevator_type *elevator_get_default(struct request_queue *q)
-{
-#ifdef CONFIG_MQ_IOSCHED_DEFAULT_ADIOS
-	return elevator_get(q, "adios", false);
-#else
-	if (q->nr_hw_queues != 1)
-		return NULL;
-
-	return elevator_get(q, "mq-deadline", false);
-#endif
-}
-
 static char chosen_elevator[ELV_NAME_MAX];
 
 static int __init elevator_setup(char *str)
@@ -995,7 +983,11 @@ int elevator_init_mq(struct request_queue *q)
 	if (unlikely(q->elevator))
 		goto out;
 
+#ifdef CONFIG_MQ_IOSCHED_DEFAULT_ADIOS
+	e = elevator_get(q, "adios", false);
+#else
 	e = elevator_get(q, "mq-deadline", false);
+#endif
 	if (!e)
 		goto out;
 
