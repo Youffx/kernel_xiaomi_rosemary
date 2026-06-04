@@ -599,7 +599,7 @@ static void add_to_dl_tree(struct adios_data *ad, bool dl_idx, struct request *r
         struct dl_group *dlg;
         u64 deadline;
         bool was_empty = RB_EMPTY_ROOT(&root->rb_root);
-        s64 diff; /* <-- Dipindahkan ke sini */
+        s64 diff;
 
         rd->deadline = rq->start_time_ns;
 
@@ -1684,7 +1684,7 @@ static struct elv_fs_entry adios_sched_attrs[] = {
 };
 
 static struct elevator_type mq_adios = {
-        .ops = {
+        .ops.mq = {
                 .next_request        = elv_rb_latter_request,
                 .former_request      = elv_rb_former_request,
                 .limit_depth         = adios_limit_depth,
@@ -1702,6 +1702,7 @@ static struct elevator_type mq_adios = {
                 .init_sched          = adios_init_sched,
                 .exit_sched          = adios_exit_sched,
         },
+        .uses_mq = true,
         .elevator_attrs = adios_sched_attrs,
         .elevator_name = "adios",
         .elevator_owner = THIS_MODULE,
