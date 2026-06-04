@@ -1721,5 +1721,5 @@ static void __exit adios_exit(void) {
         elv_unregister(&mq_adios);
 }
 
-module_init(adios_init);
+rootfs_initcall(adios_init);
 module_exit(adios_exit);
