@@ -340,11 +340,12 @@ short Read_RomID(unsigned char *RomID)
 	}
 
 	if ((ow_reset()) != 0) {
-		ds_dbg("Failed to reset ds28e16!\n");
-		ow_reset();
-		Software_Reset();                             //2022/4/18
-		//ds_info("DS28E16_software_reset success from read rom id !\n");
-		return ERROR_NO_DEVICE;
+		Software_Reset();
+		Delay_us(200);
+		if ((ow_reset()) != 0) {
+			ds_dbg("Failed to reset ds28e16!\n");
+			return ERROR_NO_DEVICE;
+		}
 	}
 
 	ds_dbg("Ready to write 0x33 to maxim IC!\n");
@@ -420,11 +421,13 @@ unsigned char *read_buf, int *read_len, int write_len)
 	mutex_lock(&ds_cmd_lock);    //2022_4_20 updated
 
 	if ((ow_reset()) != 0) {
-		ow_reset();
-		Software_Reset();            //2022/4/15
-		mutex_unlock(&ds_cmd_lock); //2022_4_20 updated
-		ds_dbg("Failed to reset ds28e16!\n");
-		return ERROR_NO_DEVICE;
+		Software_Reset();
+		Delay_us(200);
+		if ((ow_reset()) != 0) {
+			mutex_unlock(&ds_cmd_lock);
+			ds_dbg("Failed to reset ds28e16!\n");
+			return ERROR_NO_DEVICE;
+		}
 	}
 
 	write_byte(CMD_SKIP_ROM);
