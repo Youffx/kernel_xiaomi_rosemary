@@ -27,9 +27,20 @@
 #include <linux/task_work.h>
 #include <linux/sched/task.h>
 #include <linux/fs_context.h>
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+#include <linux/susfs_def.h>
+#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 
 #include "pnode.h"
 #include "internal.h"
+
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+extern bool susfs_is_current_ksu_domain(void);
+extern struct static_key_true susfs_is_sdcard_android_data_not_decrypted;
+
+#define CL_COPY_MNT_NS BIT(25) /* used by copy_mnt_ns() */
+
+#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 
 /* Maximum number of mounts in a mount namespace */
 unsigned int sysctl_mount_max __read_mostly = 100000;
@@ -1130,6 +1141,20 @@ struct vfsmount *vfs_kern_mount(struct file_system_type *type,
 
 	if (!type)
 		return ERR_PTR(-EINVAL);
+
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+	/*
+	 * We will just stop checking for ksu process if
+	 * /sdcard/Android is accessible, for the sake of
+	 * performance
+	 */
+	if (static_branch_unlikely(
+		    &susfs_is_sdcard_android_data_not_decrypted)) {
+		if (susfs_is_current_ksu_domain())
+			return susfs_alloc_non_unshare_ksu_vfsmnt(
+				name ? : "none");
+	}
+#endif
 
 	fc = fs_context_for_mount(type, flags);
 	if (IS_ERR(fc))
