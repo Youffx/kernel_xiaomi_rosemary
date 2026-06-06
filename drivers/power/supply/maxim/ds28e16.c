@@ -341,7 +341,7 @@ short Read_RomID(unsigned char *RomID)
 
 	if ((ow_reset()) != 0) {
 		Software_Reset();
-		Delay_us(200);
+		Delay_us(500);
 		if ((ow_reset()) != 0) {
 			ds_dbg("Failed to reset ds28e16!\n");
 			return ERROR_NO_DEVICE;
@@ -422,7 +422,7 @@ unsigned char *read_buf, int *read_len, int write_len)
 
 	if ((ow_reset()) != 0) {
 		Software_Reset();
-		Delay_us(200);
+		Delay_us(500);
 		if ((ow_reset()) != 0) {
 			mutex_unlock(&ds_cmd_lock);
 			ds_dbg("Failed to reset ds28e16!\n");
