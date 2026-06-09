@@ -521,13 +521,6 @@ struct request_queue {
 	atomic_t		pm_only;
 
 	/*
-	 * Number of contexts that have called blk_set_pm_only(). If this
-	 * counter is above zero then only RQF_PM and RQF_PREEMPT requests are
-	 * processed.
-	 */
-	atomic_t		pm_only;
-
-	/*
 	 * ida allocated id for this queue.  Used to index queues from
 	 * ioctx.
 	 */
