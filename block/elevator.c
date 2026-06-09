@@ -963,7 +963,11 @@ int elevator_init_mq(struct request_queue *q)
 	if (unlikely(q->elevator))
 		goto out;
 
+#ifdef CONFIG_MQ_IOSCHED_DEFAULT_KYBER
+	e = elevator_get(q, "kyber", false);
+#else
 	e = elevator_get(q, "mq-deadline", false);
+#endif
 	if (!e)
 		goto out;
 
