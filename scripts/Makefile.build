@@ -673,3 +673,7 @@ endif
 .SECONDARY: $(targets)
 
 .PHONY: $(PHONY)
+
+ifneq ($(filter arch/arm64/kernel% drivers/firmware/efi/libstub%,$(src)),)
+KBUILD_CFLAGS := $(filter-out $(CC_FLAGS_LTO) -flto -flto=thin -flto=full, $(KBUILD_CFLAGS))
+endif
