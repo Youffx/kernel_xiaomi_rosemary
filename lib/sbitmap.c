@@ -593,14 +593,13 @@ void sbitmap_queue_show(struct sbitmap_queue *sbq, struct seq_file *m)
 }
 EXPORT_SYMBOL_GPL(sbitmap_queue_show);
 
-<<<<<<< HEAD
 void sbitmap_prepare_to_wait(struct sbitmap_queue *sbq,
 			     struct sbq_wait_state *ws,
 			     struct sbq_wait *sbq_wait, int state)
 {
-	if (!sbq_wait->accounted) {
+	if (!sbq_wait->sbq) {
+		sbq_wait->sbq = sbq;
 		atomic_inc(&sbq->ws_active);
-		sbq_wait->accounted = 1;
 	}
 	prepare_to_wait_exclusive(&ws->wait, &sbq_wait->wait, state);
 }
@@ -610,13 +609,13 @@ void sbitmap_finish_wait(struct sbitmap_queue *sbq, struct sbq_wait_state *ws,
 			 struct sbq_wait *sbq_wait)
 {
 	finish_wait(&ws->wait, &sbq_wait->wait);
-	if (sbq_wait->accounted) {
+	if (sbq_wait->sbq) {
 		atomic_dec(&sbq->ws_active);
-		sbq_wait->accounted = 0;
+		sbq_wait->sbq = NULL;
 	}
 }
 EXPORT_SYMBOL_GPL(sbitmap_finish_wait);
-=======
+
 void sbitmap_add_wait_queue(struct sbitmap_queue *sbq,
 			    struct sbq_wait_state *ws,
 			    struct sbq_wait *sbq_wait)
@@ -638,4 +637,3 @@ void sbitmap_del_wait_queue(struct sbq_wait *sbq_wait)
 	}
 }
 EXPORT_SYMBOL_GPL(sbitmap_del_wait_queue);
->>>>>>> 188729965e12 (lib/sbitmap: add sbq_wait)

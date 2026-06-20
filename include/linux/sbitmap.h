@@ -537,21 +537,13 @@ void sbitmap_queue_wake_up(struct sbitmap_queue *sbq);
 void sbitmap_queue_show(struct sbitmap_queue *sbq, struct seq_file *m);
 
 struct sbq_wait {
-<<<<<<< HEAD
-	int accounted;
-=======
-	struct sbitmap_queue *sbq;	/* if set, sbq_wait is accounted */
->>>>>>> 188729965e12 (lib/sbitmap: add sbq_wait)
+	struct sbitmap_queue *sbq;
 	struct wait_queue_entry wait;
 };
 
 #define DEFINE_SBQ_WAIT(name)							\
 	struct sbq_wait name = {						\
-<<<<<<< HEAD
-		.accounted = 0,							\
-=======
 		.sbq = NULL,							\
->>>>>>> 188729965e12 (lib/sbitmap: add sbq_wait)
 		.wait = {							\
 			.private	= current,				\
 			.func		= autoremove_wake_function,		\
@@ -559,32 +551,17 @@ struct sbq_wait {
 		}								\
 	}
 
-/*
-<<<<<<< HEAD
- * Wrapper around prepare_to_wait_exclusive(), which maintains some extra
- * internal state.
- */
 void sbitmap_prepare_to_wait(struct sbitmap_queue *sbq,
 				struct sbq_wait_state *ws,
 				struct sbq_wait *sbq_wait, int state);
 
-/*
- * Must be paired with sbitmap_prepare_to_wait().
- */
 void sbitmap_finish_wait(struct sbitmap_queue *sbq, struct sbq_wait_state *ws,
 				struct sbq_wait *sbq_wait);
-=======
- * Wrapper around add_wait_queue(), which maintains some extra internal state
- */
 
 void sbitmap_add_wait_queue(struct sbitmap_queue *sbq,
 			    struct sbq_wait_state *ws,
 			    struct sbq_wait *sbq_wait);
 
-/*
- * Must be paired with sbitmap_add_wait_queue()
- */
 void sbitmap_del_wait_queue(struct sbq_wait *sbq_wait);
->>>>>>> 188729965e12 (lib/sbitmap: add sbq_wait)
 
 #endif /* __LINUX_SCALE_BITMAP_H */
