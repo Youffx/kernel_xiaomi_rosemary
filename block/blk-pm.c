@@ -98,6 +98,8 @@ int blk_pre_runtime_suspend(struct request_queue *q)
 
 	if (ret)
 		blk_clear_pm_only(q);
+	else
+		wake_up_all(&q->mq_freeze_wq);
 
 	return ret;
 }
@@ -132,6 +134,8 @@ void blk_post_runtime_suspend(struct request_queue *q, int err)
 
 	if (err)
 		blk_clear_pm_only(q);
+	else
+		wake_up_all(&q->mq_freeze_wq);
 }
 EXPORT_SYMBOL(blk_post_runtime_suspend);
 
@@ -186,8 +190,7 @@ void blk_post_runtime_resume(struct request_queue *q, int err)
 	}
 	spin_unlock_irq(q->queue_lock);
 
-	if (!err)
-		blk_clear_pm_only(q);
+	blk_clear_pm_only(q);
 }
 EXPORT_SYMBOL(blk_post_runtime_resume);
 
