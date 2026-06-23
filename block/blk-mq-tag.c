@@ -363,6 +363,8 @@ static struct blk_mq_tags *blk_mq_init_bitmap_tags(struct blk_mq_tags *tags,
 		     node))
 		goto free_bitmap_tags;
 
+	sbitmap_queue_min_shallow_depth(&tags->bitmap_tags, 1);
+
 	return tags;
 free_bitmap_tags:
 	sbitmap_queue_free(&tags->bitmap_tags);

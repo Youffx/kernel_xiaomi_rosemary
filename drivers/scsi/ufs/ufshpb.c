@@ -301,6 +301,7 @@ static void ufshpb_pre_req_compl_fn(struct request *req, blk_status_t error)
 	spin_unlock_irqrestore(&hpb->hpb_lock, flags);
 
 	ufshpb_lu_put(pre_req->hpb);
+	blk_mq_free_request(req);
 }
 
 static int ufshpb_prep_entry(struct ufshpb_req *pre_req,
@@ -380,7 +381,12 @@ static void ufshpb_init_cmd_errh(struct scsi_cmnd *cmd)
 
 static void ufshpb_pre_req_done(struct scsi_cmnd *cmd)
 {
-	blk_complete_request(cmd->request);
+	struct request *req = cmd->request;
+
+	if (req->q->mq_ops)
+		blk_mq_complete_request(req);
+	else
+		blk_complete_request(req);
 }
 
 static inline unsigned long ufshpb_get_lpn(struct request *rq)
@@ -455,20 +461,13 @@ static int ufshpb_mimic_scsi_request_fn(struct ufshpb_lu *hpb,
 	struct scsi_device *sdev = q->queuedata;
 	struct Scsi_Host *shost = sdev->host;
 	struct scsi_cmnd *cmd;
-	unsigned long flags;
 	unsigned int busy;
 	int ret = 0;
 
-	spin_lock_irqsave(q->queue_lock, flags);
 	req->rq_flags |= RQF_STARTED;
+	req->rq_flags |= RQF_DONTPREP;
 
-	ret = q->prep_rq_fn(q, req);
-	if (unlikely(ret != BLKPREP_OK)) {
-		HPB_DEBUG(hpb, "scsi_prep_fn is fail");
-		ret = -EIO;
-		goto prep_err;
-	}
-	cmd = req->special;
+	cmd = (struct scsi_cmnd *)(req + 1);
 	if (unlikely(!cmd))
 		BUG();
 
@@ -478,20 +477,6 @@ static int ufshpb_mimic_scsi_request_fn(struct ufshpb_lu *hpb,
 		goto finish_cmd;
 	}
 
-	/* lh_pre_req_free list is dummy head for blk_dequeue_request() */
-	list_add_tail(&req->queuelist, &hpb->lh_pre_req_dummy);
-	ret = blk_queue_start_tag(q, req);
-	if (ret) {
-		list_del_init(&req->queuelist);
-		ret = -EAGAIN;
-		goto finish_cmd;
-	}
-	spin_unlock_irqrestore(q->queue_lock, flags);
-
-	/*
-	 * UFS device has multi luns, so starget is not used.
-	 * In case of UFS, starget->can_queue <= 0.
-	 */
 	if (unlikely(scsi_target(sdev)->can_queue > 0))
 		atomic_inc(&scsi_target(sdev)->target_busy);
 	atomic_inc(&shost->host_busy);
@@ -505,10 +490,7 @@ finish_cmd:
 	ufshpb_mimic_scsi_release_buffers(cmd);
 	scsi_put_command(cmd);
 	put_device(&sdev->sdev_gendev);
-	req->special = NULL;
 	atomic_dec(&sdev->device_busy);
-prep_err:
-	spin_unlock_irqrestore(q->queue_lock, flags);
 	return ret;
 }
 
@@ -531,35 +513,25 @@ static int ufshpb_set_pre_req(struct ufshpb_lu *hpb, struct scsi_cmnd *cmd,
 	if (ret)
 		return ret;
 
-	req = pre_req->req;
+	req = blk_get_request(q, REQ_OP_SCSI_OUT, 0);
+	if (IS_ERR(req))
+		return PTR_ERR(req);
 
-	/*
-	 * blk_init_rl() -> alloc_request_size().
-	 * q->init_rq_fn = scsi_old_init_rq behavior.
-	 */
-	scmd = (struct scsi_cmnd *)(req + 1);
-	memset(scmd, 0, sizeof(*scmd));
-	scmd->sense_buffer = pre_req->sense;
-	scmd->req.sense = scmd->sense_buffer;
-
-	/* blk_get_request behavior */
-	blk_rq_init(q, req);
-	if (q->initialize_rq_fn)
-		q->initialize_rq_fn(req);
-
-	/* 1. request setup */
 	blk_rq_append_bio(req, &bio);
-	req->cmd_flags = REQ_OP_WRITE | REQ_SYNC | REQ_OP_SCSI_OUT;
-	req->rq_flags = RQF_QUIET | RQF_PREEMPT;
 	req->timeout = msecs_to_jiffies(30000);
 	req->end_io_data = (void *)pre_req;
 	req->end_io = ufshpb_pre_req_compl_fn;
 
-	/* 2. scsi_request setup */
+	scmd = (struct scsi_cmnd *)(req + 1);
+	scmd->sense_buffer = pre_req->sense;
+	scmd->req.sense = scmd->sense_buffer;
+
 	rq = scsi_req(req);
 	ufshpb_set_write_buf_cmd(rq->cmd, pre_req->wb.lpn, pre_req->wb.len,
 				 hpb_ctx_id);
 	rq->cmd_len = scsi_command_size(rq->cmd);
+
+	pre_req->req = req;
 
 	ret = ufshpb_mimic_scsi_request_fn(hpb, req);
 
@@ -685,7 +657,7 @@ int ufshpb_prepare_pre_req(struct ufsf_feature *ufsf, struct scsi_cmnd *cmd,
 	add_lrbp = &hba->lrb[add_tag];
 	WARN_ON(add_lrbp->cmd);
 
-	pre_cmd = pre_req->req->special;
+	pre_cmd = (struct scsi_cmnd *)(pre_req->req + 1);
 	add_lrbp->cmd = pre_cmd;
 	add_lrbp->sense_bufflen = UFSHCD_REQ_SENSE_SIZE;
 	add_lrbp->sense_buffer = pre_cmd->sense_buffer;
@@ -1083,9 +1055,6 @@ static void ufshpb_map_req_compl_fn(struct request *req, blk_status_t error)
 	unsigned long flags;
 	int ret;
 
-#ifdef CONFIG_PM
-	ufshpb_mimic_blk_pm_put_request(req);
-#endif
 	if (hpb->ufsf->ufshpb_state != HPB_PRESENT)
 		goto free_map_req;
 
@@ -1103,9 +1072,14 @@ free_map_req:
 	spin_lock_irqsave(&hpb->hpb_lock, flags);
 	ufshpb_put_map_req(map_req->hpb, map_req);
 	spin_unlock_irqrestore(&hpb->hpb_lock, flags);
+	scsi_device_put(hpb->ufsf->sdev_ufs_lu[hpb->lun]);
+	ufshpb_lu_put(hpb);
+	blk_mq_free_request(req);
+	return;
 retry_map_req:
 	scsi_device_put(hpb->ufsf->sdev_ufs_lu[hpb->lun]);
 	ufshpb_lu_put(hpb);
+	blk_mq_free_request(req);
 }
 
 static inline int ufshpb_get_scsi_device(struct ufs_hba *hba,
@@ -1235,7 +1209,6 @@ static int ufshpb_execute_map_req(struct ufshpb_lu *hpb,
 	struct request_queue *q = sdev->request_queue;
 	struct request *req;
 	struct scsi_request *rq;
-	struct scsi_cmnd *scmd;
 	struct bio *bio = map_req->bio;
 	int ret;
 
@@ -1243,30 +1216,14 @@ static int ufshpb_execute_map_req(struct ufshpb_lu *hpb,
 	if (ret)
 		return ret;
 
-	req = map_req->req;
+	req = blk_get_request(q, REQ_OP_SCSI_IN, 0);
+	if (IS_ERR(req))
+		return PTR_ERR(req);
 
-	/*
-	 * blk_init_rl() -> alloc_request_size().
-	 * q->init_rq_fn = scsi_old_init_rq behavior.
-	 */
-	scmd = (struct scsi_cmnd *)(req + 1);
-	memset(scmd, 0, sizeof(*scmd));
-	scmd->sense_buffer = map_req->sense;
-	scmd->req.sense = scmd->sense_buffer;
-
-	/* blk_get_request behavior */
-	blk_rq_init(q, req);
-	if (q->initialize_rq_fn)
-		q->initialize_rq_fn(req);
-
-	/* 1. request setup */
-	blk_rq_append_bio(req, &bio); /* req->__data_len is setted */
-	req->cmd_flags = REQ_OP_READ | REQ_OP_SCSI_IN;
-	req->rq_flags = RQF_QUIET | RQF_PREEMPT;
+	blk_rq_append_bio(req, &bio);
 	req->timeout = msecs_to_jiffies(30000);
 	req->end_io_data = (void *)map_req;
 
-	/* 2. scsi_request setup */
 	rq = scsi_req(req);
 	ufshpb_set_read_buf_cmd(rq->cmd, map_req->rb.rgn_idx,
 				map_req->rb.srgn_idx, hpb->srgn_mem_size);
@@ -2391,27 +2348,14 @@ ufshpb_map_req_mempool_init(struct ufshpb_lu *hpb)
 	if (!hpb->map_req)
 		goto release_mem;
 
-	/*
-	 * q->cmd_size: sizeof(struct scsi_cmd) + shost->hostt->cmd_size
-	 */
 	for (i = 0; i < qd; i++) {
 		map_req = hpb->map_req + i;
 		INIT_LIST_HEAD(&map_req->list_req);
-		map_req->req = kzalloc(sizeof(struct request) + q->cmd_size,
-				       GFP_KERNEL);
-		if (!map_req->req) {
-			for (j = 0; j < i; j++)
-				kfree(hpb->map_req[j].req);
-			goto release_mem;
-		}
 
 		map_req->bio = bio_kmalloc(GFP_KERNEL, hpb->mpages_per_srgn);
 		if (!map_req->bio) {
-			kfree(hpb->map_req[i].req);
-			for (j = 0; j < i; j++) {
-				kfree(hpb->map_req[j].req);
+			for (j = 0; j < i; j++)
 				bio_put(hpb->map_req[j].bio);
-			}
 			goto release_mem;
 		}
 		list_add_tail(&map_req->list_req, &hpb->lh_map_req_free);
@@ -2442,36 +2386,23 @@ ufshpb_pre_req_mempool_init(struct ufshpb_lu *hpb)
 	if (!hpb->pre_req)
 		goto release_mem;
 
-	/*
-	 * q->cmd_size: sizeof(struct scsi_cmd) + shost->hostt->cmd_size
-	 */
 	for (i = 0; i < qd; i++) {
 		pre_req = hpb->pre_req + i;
 		INIT_LIST_HEAD(&pre_req->list_req);
-		pre_req->req = kzalloc(sizeof(struct request) + q->cmd_size,
-				       GFP_KERNEL);
-		if (!pre_req->req) {
-			for (j = 0; j < i; j++)
-				kfree(hpb->pre_req[j].req);
-			goto release_mem;
-		}
 
 		pre_req->bio = bio_kmalloc(GFP_KERNEL, 1);
 		if (!pre_req->bio) {
-			kfree(hpb->pre_req[i].req);
 			for (j = 0; j < i; j++) {
-				kfree(hpb->pre_req[j].req);
 				bio_put(hpb->pre_req[j].bio);
+				__free_page(hpb->pre_req[j].wb.m_page);
 			}
 			goto release_mem;
 		}
 
 		pre_req->wb.m_page = alloc_page(GFP_KERNEL | __GFP_ZERO);
 		if (!pre_req->wb.m_page) {
-			kfree(hpb->pre_req[i].req);
 			bio_put(hpb->pre_req[i].bio);
 			for (j = 0; j < i; j++) {
-				kfree(hpb->pre_req[j].req);
 				bio_put(hpb->pre_req[j].bio);
 				__free_page(hpb->pre_req[j].wb.m_page);
 			}
