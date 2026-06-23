@@ -72,10 +72,11 @@ s32 mm_qos_set_request(struct mm_qos_request *req, u32 bw_value,
 
 	if (bw_value != MTK_MMQOS_MAX_BW && hrt_value != MTK_MMQOS_MAX_BW &&
 		(bw_value > max_bw_bound || hrt_value > max_bw_bound)) {
-		pr_notice("mm_set(0x%08x) invalid bw=%d hrt=%d bw_bound=%d\n",
+		pr_warn_ratelimited("mm_set(0x%08x) bw=%d hrt=%d bw_bound=%d, clamped\n",
 			req->master_id, bw_value,
 			hrt_value, max_bw_bound);
-		return -EINVAL;
+		bw_value = min(bw_value, max_bw_bound);
+		hrt_value = min(hrt_value, max_bw_bound);
 	}
 
 	if (req->hrt_value == hrt_value &&
