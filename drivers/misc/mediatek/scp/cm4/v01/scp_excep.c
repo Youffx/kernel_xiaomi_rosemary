@@ -63,9 +63,9 @@ static int notesize(struct memelfnote *en)
 {
 	int sz;
 
-	sz = sizeof(struct elf32_note);
-	sz += roundup((strlen(en->name) + 1), 4);
-	sz += roundup(en->datasz, 4);
+	sz = roundup((sizeof(struct elf32_note) + strlen(en->name) + 1), 16);
+	sz += en->datasz;
+	sz = roundup(sz, 16);
 
 	return sz;
 }
@@ -73,6 +73,8 @@ static int notesize(struct memelfnote *en)
 static uint8_t *storenote(struct memelfnote *men, uint8_t *bufp)
 {
 	struct elf32_note en;
+
+	bufp = (uint8_t *) roundup((unsigned long)bufp, 16);
 
 	en.n_namesz = strlen(men->name) + 1;
 	en.n_descsz = men->datasz;
@@ -84,11 +86,11 @@ static uint8_t *storenote(struct memelfnote *men, uint8_t *bufp)
 	memcpy(bufp, men->name, en.n_namesz);
 	bufp += en.n_namesz;
 
-	bufp = (uint8_t *) roundup((unsigned long)bufp, 4);
+	bufp = (uint8_t *) roundup((unsigned long)bufp, 16);
 	memcpy(bufp, men->data, men->datasz);
 	bufp += men->datasz;
 
-	bufp = (uint8_t *) roundup((unsigned long)bufp, 4);
+	bufp = (uint8_t *) roundup((unsigned long)bufp, 16);
 	return bufp;
 }
 
@@ -186,6 +188,8 @@ void exception_header_init(void *oldbufp, enum scp_core_id id)
 	phdr->p_align = 0;
 	phdr->p_type = PT_LOAD;
 
+	bufp = (uint8_t *) roundup((unsigned long)bufp, 16);
+	offset = roundup(offset, 16);
 	nhdr->p_offset = offset;
 
 	/* set up the process info */
