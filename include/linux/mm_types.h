@@ -575,6 +575,7 @@ void lru_gen_del_mm(struct mm_struct *mm);
 #ifdef CONFIG_MEMCG
 void lru_gen_migrate_mm(struct mm_struct *mm);
 #endif
+void lru_gen_use_mm(struct mm_struct *mm);
 
 static inline void lru_gen_init_mm(struct mm_struct *mm)
 {
@@ -583,15 +584,6 @@ static inline void lru_gen_init_mm(struct mm_struct *mm)
 	mm->lru_gen.memcg = NULL;
 #endif
 	nodes_clear(mm->lru_gen.nodes);
-}
-
-static inline void lru_gen_use_mm(struct mm_struct *mm)
-{
-	/* unlikely but not a bug when racing with lru_gen_migrate_mm() */
-	VM_WARN_ON(list_empty(&mm->lru_gen.list));
-
-	if (!(current->flags & 0x00200000) && !nodes_full(mm->lru_gen.nodes))
-		nodes_setall(mm->lru_gen.nodes);
 }
 
 #else /* !CONFIG_LRU_GEN */
