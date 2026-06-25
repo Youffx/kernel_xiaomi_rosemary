@@ -123,6 +123,8 @@ static unsigned int _can_switch_check_mode(void)
 	int ret = 0;
 	struct LCM_PARAMS *params;
 
+	if (!primary_get_lcm())
+		return ret;
 	params = primary_get_lcm()->params;
 	if (params->dsi.customization_esd_check_enable == 0 &&
 	    params->dsi.lcm_esd_check_table[0].cmd != 0 &&
@@ -134,8 +136,12 @@ static unsigned int _can_switch_check_mode(void)
 static unsigned int _lcm_need_esd_check(void)
 {
 	int ret = 0;
+	struct LCM_PARAMS *params;
 
-	if (primary_get_lcm()->params->dsi.esd_check_enable == 1) {
+	if (!primary_get_lcm() || !primary_get_lcm()->params)
+		return ret;
+	params = primary_get_lcm()->params;
+	if (params->dsi.esd_check_enable == 1) {
 #ifdef CONFIG_OF
 		if (islcmconnected == 1)
 			ret = 1;
@@ -1070,6 +1076,8 @@ int primary_display_esd_check(void)
 	primary_display_manual_unlock();
 
 	/* Esd Check: EXT TE */
+	if (!primary_get_lcm() || !primary_get_lcm()->params)
+		goto done;
 	params = primary_get_lcm()->params;
 	if (params->dsi.customization_esd_check_enable == 0) {
 		/* use TE for esd check */
@@ -1527,6 +1535,8 @@ void primary_display_requset_eint(void)
 	struct LCM_PARAMS *params;
 	struct device_node *node;
 
+	if (!primary_get_lcm() || !primary_get_lcm()->params)
+		return;
 	params = primary_get_lcm()->params;
 	if (params->dsi.customization_esd_check_enable == 0) {
 		node = of_find_compatible_node(NULL, NULL,
@@ -1636,7 +1646,8 @@ unsigned int need_wait_esd_eof(void)
 	if (primary_display_is_video_mode())
 		ret = 0;
 
-	if (primary_get_lcm()->params->dsi.customization_esd_check_enable == 0)
+	if (primary_get_lcm() && primary_get_lcm()->params &&
+	    primary_get_lcm()->params->dsi.customization_esd_check_enable == 0)
 		ret = 0;
 
 	return ret;

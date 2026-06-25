@@ -1186,11 +1186,6 @@ int _ioctl_get_display_caps(unsigned long arg)
 	void __user *argp = (void __user *)arg;
 	struct LCM_PARAMS *params = disp_lcm_get_params(primary_get_lcm());
 
-	if (copy_from_user(&caps_info, argp, sizeof(caps_info))) {
-		DISP_PR_ERR("[FB] copy_from_user failed! line:%d\n", __LINE__);
-		ret = -EFAULT;
-	}
-
 	HWC_gpid = task_tgid_nr(current);
 
 	memset(&caps_info, 0, sizeof(caps_info));

@@ -374,6 +374,8 @@ static int primary_display_dsi_vfp_change(int state)
 	 */
 	/* cmdqRecWaitNoClear(qhandle, CMDQ_EVENT_DISP_RDMA0_SOF); */
 
+	if (!primary_get_lcm() || !primary_get_lcm()->params)
+		goto exit;
 	params = primary_get_lcm()->params;
 	if (state == 1) {
 		/* need calculate fps by VDO mode params */
@@ -447,6 +449,10 @@ static int primary_display_dsi_vfp_change(int state)
 
 	/*ToDo: ARR, send cmd to DDIC, tell DDIC FPS changed*/
 	/*can send cmd here, after change VFP,maybe late?*/
+	return ret;
+
+exit:
+	cmdqRecDestroy(qhandle);
 	return ret;
 }
 
@@ -858,9 +864,12 @@ static void _primary_display_enable_mmsys_clk(void)
 }
 
 /* share WROT SRAM end */
-static void _vdo_mode_enter_idle(void)
+	static void _vdo_mode_enter_idle(void)
 {
 	struct LCM_PARAMS *params;
+
+	if (!primary_get_lcm() || !primary_get_lcm()->params)
+		return;
 #ifdef MTK_FB_MMDVFS_SUPPORT
 	unsigned long long bandwidth;
 	unsigned int out_fps = 60;
@@ -1430,6 +1439,8 @@ int primary_display_lowpower_init(void)
 {
 	struct LCM_PARAMS *params;
 
+	if (!primary_get_lcm() || !primary_get_lcm()->params)
+		return -ENODEV;
 	params = primary_get_lcm()->params;
 	backup_vfp_for_lp_cust(params->dsi.vertical_frontporch_for_low_power);
 
@@ -1613,14 +1624,18 @@ unsigned int get_us_perline(unsigned int width)
 	unsigned int pixclk = 0;
 	unsigned int tline = 0;
 	unsigned int overhead = 12; /* 1.2 */
+	struct LCM_PARAMS *params;
 
-	PLLCLK = primary_get_lcm()->params->dsi.PLL_CLOCK;
+	if (!primary_get_lcm() || !primary_get_lcm()->params)
+		return 0;
+	params = primary_get_lcm()->params;
+	PLLCLK = params->dsi.PLL_CLOCK;
 	PLLCLK = PLLCLK * LINE_ACCURACY;
 	PLLCLK = PLLCLK * 10 / overhead;
 
 	datarate = PLLCLK * 2;
 
-	pixclk = datarate * primary_get_lcm()->params->dsi.LANE_NUM;
+	pixclk = datarate * params->dsi.LANE_NUM;
 	pixclk = pixclk / 24; /* dsi output RGB888 */
 
 	tline = width * LINE_ACCURACY * LINE_ACCURACY / pixclk;
