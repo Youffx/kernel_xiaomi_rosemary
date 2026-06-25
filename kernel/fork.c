@@ -651,6 +651,7 @@ void __mmdrop(struct mm_struct *mm)
 	hmm_mm_destroy(mm);
 	mmu_notifier_mm_destroy(mm);
 	check_mm(mm);
+	lru_gen_del_mm(mm);
 	put_user_ns(mm->user_ns);
 	free_mm(mm);
 }
@@ -1044,7 +1045,6 @@ static inline void __mmput(struct mm_struct *mm)
 	}
 	if (mm->binfmt)
 		module_put(mm->binfmt->module);
-	lru_gen_del_mm(mm);
 	mmdrop(mm);
 }
 

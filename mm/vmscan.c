@@ -2772,7 +2772,8 @@ void lru_gen_migrate_mm(struct mm_struct *mm)
 
 void lru_gen_use_mm(struct mm_struct *mm)
 {
-	VM_WARN_ON(list_empty(&mm->lru_gen.list));
+	if (list_empty(&mm->lru_gen.list))
+		return;
 
 	if (!(current->flags & PF_KTHREAD) && !nodes_full(mm->lru_gen.nodes))
 		nodes_setall(mm->lru_gen.nodes);

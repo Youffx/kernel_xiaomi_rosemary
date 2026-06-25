@@ -37,6 +37,10 @@ void use_mm(struct mm_struct *mm)
 	finish_arch_post_lock_switch();
 #endif
 
+	if (list_empty(&mm->lru_gen.list))
+		lru_gen_add_mm(mm);
+	lru_gen_use_mm(mm);
+
 	if (active_mm != mm)
 		mmdrop(active_mm);
 }
