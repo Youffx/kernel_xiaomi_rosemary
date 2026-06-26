@@ -89,19 +89,23 @@ struct llvm_prf_header {
  * @name_ref: the reference to the function's name.
  * @func_hash: the hash value of the function.
  * @counter_ptr: a pointer to the profile counter.
+ * @bitmap_ptr: a pointer to the profile bitmap.
  * @function_ptr: a pointer to the function.
  * @values: the profiling values associated with this function.
  * @num_counters: the number of counters in the function.
  * @num_value_sites: the number of value profile sites.
+ * @num_bitmap_bytes: the number of bitmap bytes.
  */
 struct llvm_prf_data {
 	const u64 name_ref;
 	const u64 func_hash;
 	const void *counter_ptr;
+	const void *bitmap_ptr;
 	const void *function_ptr;
 	void *values;
 	const u32 num_counters;
 	const u16 num_value_sites[LLVM_INSTR_PROF_IPVK_LAST + 1];
+	const u32 num_bitmap_bytes;
 } __aligned(LLVM_INSTR_PROF_DATA_ALIGNMENT);
 
 /**
