@@ -1276,6 +1276,9 @@ static void adios_completed_request(struct request *rq, u64 now) {
 	unsigned long flags;
 	struct adios_pcpu_completion *pc;
 
+	if (unlikely(!rd))
+		return;
+
 	if (rd->managed) {
 		union adios_in_flight_rqs ifr_to_sub = {
 			.count          = 1,
