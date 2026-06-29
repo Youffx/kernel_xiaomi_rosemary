@@ -1335,7 +1335,7 @@ static void adios_completed_request(struct request *rq, u64 now) {
 
 	latency_model_input(ad, &ad->latency_model[optype],
 		rd->block_size, latency, rd->pred_lat, weight);
-	timer_reduce(&ad->update_timer, jiffies + msecs_to_jiffies(100));
+	timer_reduce(&ad->update_timer, jiffies + msecs_to_jiffies(1000));
 	}
 }
 
@@ -1351,7 +1351,7 @@ static void adios_finish_request(struct request *rq) {
 static bool adios_has_work(struct blk_mq_hw_ctx *hctx) {
 	struct adios_data *ad = hctx->queue->elevator->elevator_data;
 
-	return atomic_read(&ad->state) != 0;
+	return atomic_read(&ad->state) & 0x3F;
 }
 
 static int adios_init_hctx(struct blk_mq_hw_ctx *hctx, unsigned int hctx_idx) {
