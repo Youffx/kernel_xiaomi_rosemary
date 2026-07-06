@@ -111,10 +111,5 @@ int AuthenticateDS28E16(int anon, int bdconst, int S_Secret_PageNum, int PageNum
 
 // retry interface
 static int ds28el16_Read_RomID_retry(unsigned char *RomID);
-static int ds28el16_get_page_status_retry(unsigned char *data);
-static int DS28E16_cmd_computeS_Secret_retry(int anon, int bdconst,
-					int pg, unsigned char *session_seed);
-static int DS28E16_cmd_computeReadPageAuthentication_retry(int anon, int pg,
-					unsigned char *challenge, unsigned char *hmac);
 static int ds28el16_get_page_data_retry(int page, unsigned char *data);
 #endif
