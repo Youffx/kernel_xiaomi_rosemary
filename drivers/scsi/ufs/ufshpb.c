@@ -513,7 +513,7 @@ static int ufshpb_set_pre_req(struct ufshpb_lu *hpb, struct scsi_cmnd *cmd,
 	if (ret)
 		return ret;
 
-	req = blk_get_request(q, REQ_OP_SCSI_OUT, 0);
+	req = blk_get_request(q, REQ_OP_SCSI_OUT, BLK_MQ_REQ_PREEMPT | BLK_MQ_REQ_NOWAIT);
 	if (IS_ERR(req))
 		return PTR_ERR(req);
 
@@ -1216,7 +1216,7 @@ static int ufshpb_execute_map_req(struct ufshpb_lu *hpb,
 	if (ret)
 		return ret;
 
-	req = blk_get_request(q, REQ_OP_SCSI_IN, 0);
+	req = blk_get_request(q, REQ_OP_SCSI_IN, BLK_MQ_REQ_PREEMPT | BLK_MQ_REQ_NOWAIT);
 	if (IS_ERR(req))
 		return PTR_ERR(req);
 
@@ -1773,7 +1773,7 @@ static int ufshpb_execute_map_req_wait(struct ufshpb_lu *hpb,
 	if (ret)
 		return ret;
 
-	req = blk_get_request(q, REQ_OP_SCSI_IN, 0);
+	req = blk_get_request(q, REQ_OP_SCSI_IN, BLK_MQ_REQ_PREEMPT | BLK_MQ_REQ_NOWAIT);
 	if (IS_ERR(req)) {
 		WARNING_MSG("cannot get request");
 		ret = -EIO;

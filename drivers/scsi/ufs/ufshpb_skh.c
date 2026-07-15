@@ -776,9 +776,9 @@ static int skhpb_map_req_issue(
 		skhpb_set_read_buf_cmd(cmd, map_req->region, map_req->subregion,
 								map_req->subregion_mem_size);
 	if (map_req->rwbuffer_flag == W_BUFFER)
-		req = blk_get_request(q, REQ_OP_SCSI_OUT, BLK_MQ_REQ_PREEMPT);
+		req = blk_get_request(q, REQ_OP_SCSI_OUT, BLK_MQ_REQ_PREEMPT | BLK_MQ_REQ_NOWAIT);
 	else
-		req = blk_get_request(q, REQ_OP_SCSI_IN, BLK_MQ_REQ_PREEMPT);
+		req = blk_get_request(q, REQ_OP_SCSI_IN, BLK_MQ_REQ_PREEMPT | BLK_MQ_REQ_NOWAIT);
 	if (IS_ERR(req)) {
 		int rv = PTR_ERR(req);
 
@@ -1434,7 +1434,7 @@ static int skhpb_execute_req(struct skhpb_lu *hpb, unsigned char *cmd,
 
 	q = sdp->request_queue;
 
-	req = blk_get_request(q, REQ_OP_SCSI_IN, BLK_MQ_REQ_PREEMPT);
+	req = blk_get_request(q, REQ_OP_SCSI_IN, BLK_MQ_REQ_PREEMPT | BLK_MQ_REQ_NOWAIT);
 	if (IS_ERR(req)) {
 		ret = PTR_ERR(req);
 		goto out_put;

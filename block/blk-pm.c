@@ -185,12 +185,11 @@ void blk_post_runtime_resume(struct request_queue *q, int err)
 		q->rpm_status = RPM_ACTIVE;
 		pm_runtime_mark_last_busy(q->dev);
 		pm_request_autosuspend(q->dev);
+		blk_clear_pm_only(q);
 	} else {
 		q->rpm_status = RPM_SUSPENDED;
 	}
 	spin_unlock_irq(q->queue_lock);
-
-	blk_clear_pm_only(q);
 }
 EXPORT_SYMBOL(blk_post_runtime_resume);
 
@@ -210,10 +209,16 @@ EXPORT_SYMBOL(blk_post_runtime_resume);
  */
 void blk_set_runtime_active(struct request_queue *q)
 {
+	unsigned long old_status;
+
 	spin_lock_irq(q->queue_lock);
+	old_status = q->rpm_status;
 	q->rpm_status = RPM_ACTIVE;
 	pm_runtime_mark_last_busy(q->dev);
 	pm_request_autosuspend(q->dev);
 	spin_unlock_irq(q->queue_lock);
+
+	if (old_status != RPM_ACTIVE)
+		blk_clear_pm_only(q);
 }
 EXPORT_SYMBOL(blk_set_runtime_active);
