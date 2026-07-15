@@ -1848,18 +1848,18 @@ static int wait_for_avail(struct snd_pcm_substream *substream,
 		wait_time = MAX_SCHEDULE_TIMEOUT;
 	else {
 		/* use wait time from substream if available */
-		if (substream->wait_time) {
+	if (substream->wait_time) {
 			wait_time = substream->wait_time;
 		} else {
-			wait_time = 2; /* 10 Modified by MTK */
+			wait_time = 2;
 
 			if (runtime->rate) {
-				long t = runtime->period_size * 2 /
+				long t = runtime->buffer_size * 1100 /
 					 runtime->rate;
 				wait_time = max(t, wait_time);
 			}
-			wait_time = msecs_to_jiffies(wait_time * 1000);
 		}
+		wait_time = msecs_to_jiffies(wait_time);
 	}
 
 	for (;;) {
@@ -1907,8 +1907,8 @@ static int wait_for_avail(struct snd_pcm_substream *substream,
 		}
 		if (!tout) {
 			pcm_dbg(substream->pcm,
-				"%s write error (DMA or IRQ trouble?)\n",
-				is_playback ? "playback" : "capture");
+				"%s timeout (DMA or IRQ trouble?)\n",
+				is_playback ? "playback write" : "capture read");
 			err = -EIO;
 			break;
 		}
