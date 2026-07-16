@@ -22,7 +22,7 @@
 #include "internal.h"
 
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-extern bool susfs_hide_sus_mnts_for_non_su_procs;
+extern struct static_key_false susfs_is_hide_sus_mnts_for_non_su_procs_enabled;
 extern bool susfs_is_current_ksu_domain(void);
 #endif
 
@@ -111,11 +111,9 @@ static int show_vfsmnt(struct seq_file *m, struct vfsmount *mnt)
 	int err;
 
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-	if (READ_ONCE(susfs_hide_sus_mnts_for_non_su_procs) &&
-		r->mnt_id >= DEFAULT_KSU_MNT_ID &&
-		!susfs_is_current_ksu_domain())
-	{
-		return 0;
+	if (static_branch_unlikely(&susfs_is_hide_sus_mnts_for_non_su_procs_enabled)) {
+		if (r->mnt_id >= DEFAULT_KSU_MNT_ID)
+			return 0;
 	}
 #endif
 
@@ -156,11 +154,9 @@ static int show_mountinfo(struct seq_file *m, struct vfsmount *mnt)
 	int err;
 
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-	if (READ_ONCE(susfs_hide_sus_mnts_for_non_su_procs) &&
-		r->mnt_id >= DEFAULT_KSU_MNT_ID &&
-		!susfs_is_current_ksu_domain())
-	{
-		return 0;
+	if (static_branch_unlikely(&susfs_is_hide_sus_mnts_for_non_su_procs_enabled)) {
+		if (r->mnt_id >= DEFAULT_KSU_MNT_ID)
+			return 0;
 	}
 #endif
 
@@ -229,11 +225,9 @@ static int show_vfsstat(struct seq_file *m, struct vfsmount *mnt)
 	int err;
 
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-	if (READ_ONCE(susfs_hide_sus_mnts_for_non_su_procs) &&
-		r->mnt_id >= DEFAULT_KSU_MNT_ID &&
-		!susfs_is_current_ksu_domain())
-	{
-		return 0;
+	if (static_branch_unlikely(&susfs_is_hide_sus_mnts_for_non_su_procs_enabled)) {
+		if (r->mnt_id >= DEFAULT_KSU_MNT_ID)
+			return 0;
 	}
 #endif
 
