@@ -204,6 +204,9 @@ void low_battery_protect_init(void)
 			, POWER_INT0_VOLT, POWER_INT1_VOLT
 			, POWER_INT2_VOLT, exec_low_battery_callback);
 
+	if (lbat_pt != NULL)
+		lbat_user_set_debounce(lbat_pt, 150, 3, 150, 3);
+
 	seg = get_devinfo_with_index(12);
 
 	if (seg != 0xffaa) {

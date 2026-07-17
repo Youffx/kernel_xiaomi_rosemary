@@ -194,6 +194,8 @@ static int low_battery_throttling_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	lbat_user_set_debounce(lbat_pt, 150, 3, 150, 3);
+
 	/* lbat_dump_reg(); */
 	dev_notice(&pdev->dev, "%d mV, %d mV, %d mV Done\n",
 		   POWER_INT0_VOLT, POWER_INT1_VOLT, POWER_INT2_VOLT);
