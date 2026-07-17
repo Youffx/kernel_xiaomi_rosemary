@@ -861,11 +861,9 @@ static int ufshpb_clean_dirty_bitmap(struct ufshpb_lu *hpb,
 {
 	struct ufshpb_region *rgn;
 
-	BUG_ON(!srgn->mctx);
-
 	rgn = hpb->rgn_tbl + srgn->rgn_idx;
 
-	if (rgn->rgn_state == HPBREGION_INACTIVE) {
+	if (rgn->rgn_state == HPBREGION_INACTIVE || !srgn->mctx) {
 		HPB_DEBUG(hpb, "%d - %d evicted", srgn->rgn_idx,
 			  srgn->srgn_idx);
 		return -EINVAL;
@@ -1494,6 +1492,11 @@ static int ufshpb_prepare_map_req(struct ufshpb_lu *hpb,
 	spin_lock_irqsave(&hpb->hpb_lock, flags);
 
 	if (srgn->srgn_state == HPBSUBREGION_ISSUED) {
+		ret = -EAGAIN;
+		goto unlock_out;
+	}
+
+	if (!srgn->mctx) {
 		ret = -EAGAIN;
 		goto unlock_out;
 	}
