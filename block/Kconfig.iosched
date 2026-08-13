@@ -163,6 +163,14 @@ config MQ_IOSCHED_DEFAULT_KYBER
 	---help---
 	  Enable the KYBER I/O scheduler as the default scheduler for MQ I/O.
 
+config MQ_IOSCHED_SSG
+	tristate "Samsung Generic I/O scheduler"
+	default n
+	---help---
+	  The Samsung Generic (SSG) I/O scheduler is a multi-queue deadline-like
+	  scheduler for the blk-mq framework. It uses read/write expiry and
+	  write-starvation control with a shallow depth limit for async writes.
+
 config IOSCHED_BFQ
 	tristate "BFQ I/O scheduler"
 	default n
