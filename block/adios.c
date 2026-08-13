@@ -482,6 +482,10 @@ static void latency_model_update(
 		new_params->slope = div_u64(new_params->large_sum_delay,
 			DIV_ROUND_UP_ULL(new_params->large_sum_bsize, 1024));
 
+	pr_info_ratelimited("adios: model base=%llu slope=%llu small_cnt=%llu large=%d\n",
+		new_params->base, new_params->slope, new_params->small_count,
+		large_processed);
+
 	if (small_processed || large_processed || time_elapsed)
 		new_params->last_update_jiffies = now;
 
@@ -534,6 +538,8 @@ static void latency_model_input(struct adios_data *ad,
 		local_irq_restore(flags);
 
 		if (unlikely(!current_base)) {
+			pr_info_ratelimited("adios: bootstrap small bs=%u lat=%llu\n",
+				block_size, latency);
 			latency_model_update(ad, model);
 			return;
 		}
@@ -1310,6 +1316,8 @@ static void adios_completed_request(struct request *rq, u64 now) {
 	pc->last_completed_time = (ifr.count) ? now : 0;
 
 	if (!rq->io_start_time_ns || !rd->block_size || unlikely(now < lct)) {
+		pr_info_ratelimited("adios: gate fail io_start=%llu block=%u now=%llu lct=%llu optype=%u\n",
+			rq->io_start_time_ns, rd->block_size, now, lct, optype);
 		local_irq_restore(flags);
 		return;
 	}
@@ -1492,6 +1500,9 @@ static int adios_init_sched(struct request_queue *q, struct elevator_type *e) {
 
 	ad->queue = q;
 	blk_stat_enable_accounting(q);
+
+	pr_info("adios: init_sched stats=%d\n",
+		test_bit(QUEUE_FLAG_STATS, &q->queue_flags));
 
 	q->elevator = eq;
 	return 0;
