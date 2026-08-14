@@ -139,7 +139,7 @@ void free_pid(struct pid *pid)
 			 * is the reaper wake up the reaper.  The reaper
 			 * may be sleeping in zap_pid_ns_processes().
 			 */
-			wake_up_process(ns->child_reaper);
+			wake_up_process(READ_ONCE(ns->child_reaper));
 			break;
 		case PIDNS_ADDING:
 			/* Handle a fork failure of the first process */
