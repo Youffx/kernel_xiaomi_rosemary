@@ -479,3 +479,6 @@ CONFIG_KSU=y
 # CONFIG_KSU_KPROBES_HOOK is not set
 # CONFIG_KSU_DEBUG is not set
 # CONFIG_KSU_SUSFS is not set
+
+# NoMount
+CONFIG_NOMOUNT=y

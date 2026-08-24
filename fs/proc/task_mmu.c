@@ -352,6 +352,9 @@ static void show_vma_header_prefix(struct seq_file *m,
 #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
 extern void susfs_sus_kstat_spoof_show_map_vma(struct inode *inode, dev_t *out_dev, unsigned long *out_ino);
 #endif // #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
+#ifdef CONFIG_NOMOUNT
+extern bool nomount_spoof_mmap_metadata(struct inode *inode, dev_t *dev, unsigned long *ino);
+#endif
 #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 extern struct srcu_struct susfs_srcu_open_redirect;
 extern int susfs_open_redirect_spoof_show_map_vma_srcu(struct inode *inode, unsigned long *out_ino, dev_t *out_dev, char **out_spoofed_name);
@@ -401,6 +404,9 @@ show_map_vma(struct seq_file *m, struct vm_area_struct *vma)
 #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
 		susfs_sus_kstat_spoof_show_map_vma(inode, &dev, &ino);
 #endif // #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
+#ifdef CONFIG_NOMOUNT
+		nomount_spoof_mmap_metadata(inode, &dev, &ino);
+#endif
 	}
 
 	start = vma->vm_start;
