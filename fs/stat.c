@@ -26,6 +26,7 @@ extern void susfs_sus_kstat_spoof_generic_fillattr(struct inode *inode, struct k
 #endif
 
 #ifdef CONFIG_KSU_SUSFS
+#include <linux/susfs_def.h>
 extern struct static_key_true ksu_is_init_rc_hook_enabled;
 extern void ksu_handle_vfs_fstat(int fd, loff_t *kstat_size_ptr);
 extern struct static_key_true ksu_su_compat_enabled;
