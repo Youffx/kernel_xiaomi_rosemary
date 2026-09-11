@@ -16,7 +16,6 @@ obj-y :=	open.o read_write.o file_table.o super.o \
 		fs_context.o fs_parser.o
 
 obj-$(CONFIG_KSU_SUSFS) += susfs.o
-
 obj-$(CONFIG_NOMOUNT) += nomount.o
 
 ifeq ($(CONFIG_BLOCK),y)
