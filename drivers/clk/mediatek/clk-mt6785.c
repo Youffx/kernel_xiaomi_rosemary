@@ -270,8 +270,6 @@ static const struct mtk_fixed_clk fixed_clks[] = {
 };
 
 static const struct mtk_fixed_factor top_divs[] = {
-	FACTOR(TOP_CLK13M, "clk13m", "clk26m", 1,
-		2),
 	FACTOR(TOP_F26M_CK_D2, "csw_f26m_ck_d2", "clk26m", 1,
 		2),
 	FACTOR(TOP_MAINPLL_CK, "mainpll_ck", "mainpll", 1,
