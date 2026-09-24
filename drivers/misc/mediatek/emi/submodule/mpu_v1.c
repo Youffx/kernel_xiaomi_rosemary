@@ -539,11 +539,16 @@ void mpu_init(struct platform_driver *emi_ctrl, struct platform_device *pdev)
 
 	if (!check_violation_cb)
 		check_violation_cb = check_violation;
-	if (readl(IOMEM(EMI_MPUS))) {
-		pr_info("[MPU] detect violation in driver init\n");
-		check_violation_cb();
-	} else
-		clear_violation();
+	/*
+	 * A violation status present here is a leftover from the
+	 * bootloader's MPU setup; the kernel re-programs all regions
+	 * below, so log it and clear it instead of raising a fatal
+	 * AEE exception for a stale status.
+	 */
+	if (readl(IOMEM(EMI_MPUS)))
+		pr_info("[MPU] bootloader left a violation status, clearing\n");
+	clear_violation();
+	clear_md_violation();
 
 	if (node) {
 		mpu_irq = irq_of_parse_and_map(node, MPU_IRQ_INDEX);
