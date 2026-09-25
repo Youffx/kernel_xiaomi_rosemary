@@ -88,6 +88,11 @@ struct inet_connection_sock_af_ops {
  * @icsk_ack:		   Delayed ACK control data
  * @icsk_mtup;		   MTU probing control data
  */
+/* Enlarged from 13 to 18 u64 to hold the BBRv3 congestion control block
+ * (struct bbr), matching the upstream approach of growing this area for
+ * newer congestion control state. All in-tree CC structs still fit.
+ */
+#define ICSK_CA_PRIV_SIZE      (18 * sizeof(u64))
 struct inet_connection_sock {
 	/* inet_sock has to be the first member! */
 	struct inet_sock	  icsk_inet;
@@ -141,8 +146,7 @@ struct inet_connection_sock {
 	} icsk_mtup;
 	u32			  icsk_user_timeout;
 
-	u64			  icsk_ca_priv[104 / sizeof(u64)];
-#define ICSK_CA_PRIV_SIZE      (13 * sizeof(u64))
+	u64			  icsk_ca_priv[ICSK_CA_PRIV_SIZE / sizeof(u64)];
 };
 
 #define ICSK_TIME_RETRANS	1	/* Retransmit timer */
