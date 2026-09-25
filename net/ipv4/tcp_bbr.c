@@ -1862,8 +1862,7 @@ static bool bbr_run_fast_path(struct sock *sk, bool *update_model,
 	return false;
 }
 
-static void bbr_main(struct sock *sk, u32 ack, int flag,
-				 const struct rate_sample *rs)
+static void bbr_main(struct sock *sk, const struct rate_sample *rs)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct bbr *bbr = inet_csk_ca(sk);
