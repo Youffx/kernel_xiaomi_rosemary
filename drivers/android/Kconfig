@@ -63,9 +63,12 @@ config ANDROID_VENDOR_HOOKS
 	  Allow vendor modules to attach to tracepoint "hooks" defined via
 	  DECLARE_HOOK or DECLARE_RESTRICTED_HOOK.
 
+# MEMCG and PSI are mandatorily selected by ANDROID_DEFAULT_SETTING on
+# this platform, and SLMK's global vmpressure notifier path operates
+# independently of both, so they are not excluded here.
 config ANDROID_SIMPLE_LMK
 	bool "Simple Android Low Memory Killer"
-	depends on !ANDROID_LOW_MEMORY_KILLER && !MEMCG && !PSI
+	depends on !ANDROID_LOW_MEMORY_KILLER
 	---help---
 	  This is a complete low memory killer solution for Android that is
 	  small and simple. Processes are killed according to the priorities
