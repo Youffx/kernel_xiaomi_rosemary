@@ -2199,6 +2199,7 @@ page_owner=on loop.max_part=7";
 
 	cmdq-bdg-test {
 		compatible = "mediatek,cmdq-bdg-test";
+		status = "disabled";
 		mediatek,gce = <&gce_mbox_bdg>;
 		mboxes = <&gce_mbox_bdg 22 0 CMDQ_THR_PRIO_2>,
 			 <&gce_mbox_bdg 23 0 CMDQ_THR_PRIO_1>;
