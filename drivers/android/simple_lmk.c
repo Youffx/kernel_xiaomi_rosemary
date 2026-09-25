@@ -44,10 +44,19 @@ static atomic_t nr_killed = ATOMIC_INIT(0);
 
 static int victim_cmp(const void *lhs_ptr, const void *rhs_ptr)
 {
-	const struct victim_info *lhs = (typeof(lhs))lhs_ptr;
-	const struct victim_info *rhs = (typeof(rhs))rhs_ptr;
+	const struct victim_info *lhs = lhs_ptr;
+	const struct victim_info *rhs = rhs_ptr;
 
-	return rhs->size - lhs->size;
+	/*
+	 * Compare without subtraction: victim sizes are page counts that
+	 * can exceed INT_MAX apart, which would truncate the result.
+	 * Sort in descending order of size (largest victims first).
+	 */
+	if (lhs->size < rhs->size)
+		return 1;
+	else if (lhs->size > rhs->size)
+		return -1;
+	return 0;
 }
 
 static void victim_swap(void *lhs_ptr, void *rhs_ptr, int size)
