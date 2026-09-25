@@ -6,6 +6,7 @@
 #define pr_fmt(fmt) "simple_lmk: " fmt
 
 #include <linux/freezer.h>
+#include <linux/init.h>
 #include <linux/kthread.h>
 #include <linux/mm.h>
 #include <linux/moduleparam.h>
@@ -481,8 +482,8 @@ static struct notifier_block vmpressure_notif = {
 	.priority = INT_MAX
 };
 
-/* Initialize Simple LMK when lmkd in Android writes to the minfree parameter */
-static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
+/* Start the reclaim and reaper threads; safe to call more than once */
+static void simple_lmk_start(void)
 {
 	static atomic_t init_done = ATOMIC_INIT(0);
 	struct task_struct *thread;
@@ -496,6 +497,12 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 		BUG_ON(IS_ERR(thread));
 		BUG_ON(vmpressure_notifier_register(&vmpressure_notif));
 	}
+}
+
+/* Initialize Simple LMK when lmkd in Android writes to the minfree parameter */
+static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
+{
+	simple_lmk_start();
 
 	return 0;
 }
@@ -508,3 +515,16 @@ static const struct kernel_param_ops simple_lmk_init_ops = {
 #undef MODULE_PARAM_PREFIX
 #define MODULE_PARAM_PREFIX "lowmemorykiller."
 module_param_cb(minfree, &simple_lmk_init_ops, NULL, 0200);
+
+/*
+ * Start unconditionally at boot so reclaim works even on setups where
+ * userspace never writes to the minfree parameter (e.g. PSI-mode lmkd).
+ * simple_lmk_start() is idempotent, so a later minfree write is harmless.
+ */
+static int __init simple_lmk_late_init(void)
+{
+	simple_lmk_start();
+
+	return 0;
+}
+late_initcall(simple_lmk_late_init);
