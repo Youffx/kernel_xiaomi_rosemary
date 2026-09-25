@@ -263,9 +263,10 @@ static void scan_and_kill(void)
 		struct task_struct *t, *vtsk = victim->tsk;
 		struct mm_struct *mm = victim->mm;
 
-		pr_info("Killing %s with adj %d to free %lu KiB\n", vtsk->comm,
-			vtsk->signal->oom_score_adj,
-			victim->size << (PAGE_SHIFT - 10));
+		pr_info_ratelimited("Killing %s with adj %d to free %lu KiB\n",
+				vtsk->comm,
+				vtsk->signal->oom_score_adj,
+				victim->size << (PAGE_SHIFT - 10));
 
 		/* Make the victim reap anonymous memory first in exit_mmap() */
 		set_bit(MMF_OOM_VICTIM, &mm->flags);
