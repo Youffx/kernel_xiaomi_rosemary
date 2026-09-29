@@ -57,11 +57,16 @@
  * otherwise TCP stack falls back to an internal pacing using one high
  * resolution timer per TCP socket and may use more resources.
  *
- * NOTE (4.19 backport): adapted from upstream BBRv3. The ECN-low precise
- * feedback, PLB, TLP-recovery and BTF paths require 5.x+ TCP stack
- * machinery (TCP_ECN_LOW, delivered_ce, tcp_plb_state, etc.) and are
- * compiled out; loss signals drive the model instead. ICSK_CA_PRIV_SIZE
- * must be enlarged to hold struct bbr (see include/net/inet_connection_sock.h).
+ * NOTE (4.19 backport): adapted from upstream BBRv3. The ECN-precise
+ * feedback (TCP_ECN_LOW, rs->delivered_ce/rs->is_ece), PLB
+ * (tcp_plb_state), TLP-recovery (CA_EVENT_TLP_RECOVERY,
+ * rs->is_acking_tlp_retrans_seq) and BTF kfunc paths require newer-stack
+ * machinery and are compiled out; loss signals drive the model instead.
+ * Per-skb loss attribution via .skb_marked_lost and the transmit-time
+ * .tso_segs op do not exist on 4.19 (only .min_tso_segs does), so the
+ * TSO cap uses the .min_tso_segs hook plus the cwnd budget below.
+ * ICSK_CA_PRIV_SIZE must be enlarged to hold struct bbr
+ * (see include/net/inet_connection_sock.h).
  */
 #include <linux/module.h>
 #include <linux/log2.h>
@@ -202,6 +207,8 @@ static const u32 bbr_probe_rtt_cwnd_gain = BBR_UNIT * 1 / 2;
  * is below 1500 bytes after 6 * ~500 usec = 3ms.
  */
 static const u32 bbr_tso_rtt_shift = 9;
+/* Skip TSO below the following bandwidth (bits/sec): */
+static const int bbr_min_tso_rate = 1200000;
 
 /* Pace at ~1% below estimated bw, on average, to reduce queue at bottleneck.
  * In order to help drive the network toward lower queues and low latency while
@@ -262,10 +269,11 @@ static const u32 bbr_extra_acked_max_us = 100 * 1000;
 
 /* Flags to control BBR ECN-related behavior... */
 
-/* NOTE (4.19 backport): ECN sender logic is disabled: precise ECN
- * feedback needs TCP_ECN_LOW/delivered_ce from newer stacks, so the loss
- * signals drive the model instead. The ecn_* tunables below are kept for
- * structure but currently have no effect.
+/* NOTE (4.19 backport): ECN sender logic is disabled. Although
+ * tp->delivered_ce exists here, the per-ACK rs->delivered_ce/rs->is_ece
+ * plus TCP_ECN_LOW precise feedback do not, so ecn_eligible can never
+ * become true and loss signals drive the model instead. The ecn_*
+ * tunables below are kept for structure but currently have no effect.
  */
 
 /* On losses, scale down inflight and pacing rate by beta scaled by BBR_SCALE.
@@ -341,7 +349,8 @@ static void bbr_reset_congestion_signals(struct sock *sk);
 static void bbr_check_probe_rtt_done(struct sock *sk);
 
 /* NOTE (4.19 backport): ECN sender logic is fully disabled (it needs
- * TCP_ECN_LOW/delivered_ce from newer stacks); loss signals drive the model.
+ * TCP_ECN_LOW plus per-ACK rs->delivered_ce/rs->is_ece); loss signals
+ * drive the model.
  */
 
 /* Do we estimate that STARTUP filled the pipe? */
@@ -471,16 +480,25 @@ static u32 bbr_tso_segs_generic(struct sock *sk, unsigned int mss_now,
 	}
 
 	bytes = min_t(u32, bytes, gso_max_size - 1 - MAX_TCP_HEADER);
-	/* NOTE (4.19 backport): sysctl_tcp_min_tso_segs does not exist here;
-	 * use the upstream default of 2 minimum TSO segments.
-	 */
-	segs = max_t(u32, bytes / mss_now, 2);
+	/* 4.19 carries sysctl_tcp_min_tso_segs; honor it as the floor. */
+	segs = max_t(u32, bytes / mss_now,
+		    sock_net(sk)->ipv4.sysctl_tcp_min_tso_segs);
 	return segs;
 }
 
+/* 4.19 transmit-time TSO hook (upstream uses .tso_segs, which does not
+ * exist here). Mirrors the upstream policy: avoid tiny TSO skbs below
+ * bbr_min_tso_rate, otherwise allow 2 segments.
+ */
+static u32 bbr_min_tso_segs(struct sock *sk)
+{
+	return READ_ONCE(sk->sk_pacing_rate) < (bbr_min_tso_rate >> 3) ? 1 : 2;
+}
+
 /* Like bbr_tso_segs_generic(), using mss_cache, ignoring driver's
- * sk_gso_max_size. Used for the cwnd quantization budget; the transmit-time
- * TSO cap itself is left to the stack default (no .tso_segs op on 4.19).
+ * sk_gso_max_size. Used for the cwnd quantization budget.
+ * NOTE: GSO_MAX_SIZE is the 4.19 equivalent of upstream GSO_LEGACY_MAX_SIZE
+ * (both 64K).
  */
 static u32 bbr_tso_segs_goal(struct sock *sk)
 {
@@ -520,9 +538,10 @@ static void bbr_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		else if (bbr->mode == BBR_PROBE_RTT)
 			bbr_check_probe_rtt_done(sk);
 	}
-	/* NOTE (4.19 backport): ECN CE and TLP recovery events need
-	 * TCP_ECN_LOW/dctcp_ece_ack_update and CA_EVENT_TLP_RECOVERY from
-	 * newer stacks, so those branches are compiled out here.
+	/* NOTE (4.19 backport): ECN CE branches need TCP_ECN_LOW plus
+	 * dctcp_ece_ack_update(), and TLP recovery needs
+	 * CA_EVENT_TLP_RECOVERY; neither exists here, so those branches
+	 * are compiled out.
 	 */
 }
 
@@ -684,7 +703,7 @@ static void bbr_set_cwnd(struct sock *sk, const struct rate_sample *rs,
 			cwnd = target_cwnd;
 			bbr->try_fast_path = 1;
 		}
-	} else if (cwnd < target_cwnd || cwnd  < 2 * bbr->init_cwnd) {
+	} else if (cwnd < target_cwnd || cwnd < 2 * bbr->init_cwnd) {
 		cwnd += acked;
 	} else {
 		bbr->try_fast_path = 1;
@@ -1072,15 +1091,16 @@ static bool bbr_is_inflight_too_high(const struct sock *sk,
 		}
 	}
 
-	/* NOTE (4.19 backport): the ECN-mark-rate check needs delivered_ce
-	 * counters from newer stacks; loss rate alone decides here.
+	/* NOTE (4.19 backport): the ECN-mark-rate check needs per-ACK
+	 * rs->delivered_ce/rs->is_ece plus TCP_ECN_LOW; loss rate alone
+	 * decides here.
 	 */
 	return false;
 }
 
 /* NOTE (4.19 backport): bbr_inflight_hi_from_lost_skb() needs the
- * .skb_marked_lost hook plus per-skb tx state (TCP_SKB_CB tx) from newer
- * stacks, so per-skb loss attribution is compiled out. Loss-rate reaction
+ * .skb_marked_lost hook plus per-skb tx.lost state from newer stacks,
+ * so per-skb loss attribution is compiled out. Loss-rate reaction
  * still works through bbr_is_inflight_too_high() on ACK samples.
  */
 
@@ -1868,14 +1888,15 @@ static void bbr_main(struct sock *sk, const struct rate_sample *rs)
 	struct bbr *bbr = inet_csk_ca(sk);
 	struct bbr_context ctx = { 0 };
 	bool update_model = true;
-	u32 bw, round_delivered;
+	u32 bw;
 
-	round_delivered = bbr_update_round_start(sk, rs, &ctx);
+	bbr_update_round_start(sk, rs, &ctx);
 	if (bbr->round_start) {
 		bbr->rounds_since_probe =
 			min_t(s32, bbr->rounds_since_probe + 1, 0xFF);
-		/* NOTE (4.19 backport): ECN alpha + PLB need newer stacks;
-		 * loss signals drive the model instead.
+		/* NOTE (4.19 backport): ECN alpha (rs->delivered_ce) and PLB
+		 * (tcp_plb_state) need newer stacks; loss signals drive the
+		 * model instead.
 		 */
 	}
 	bbr_calculate_bw_sample(sk, rs, &ctx);
@@ -1898,8 +1919,8 @@ out:
 	bbr_advance_latest_delivery_signals(sk, rs, &ctx);
 	bbr->prev_ca_state = inet_csk(sk)->icsk_ca_state;
 	bbr->loss_in_cycle |= rs->losses > 0;
-	/* NOTE (4.19 backport): ecn_in_cycle is never set; ECN sender
-	 * logic needs newer-stack feedback.
+	/* NOTE (4.19 backport): ecn_in_cycle is never set; it needs
+	 * per-ACK rs->delivered_ce/rs->is_ece plus TCP_ECN_LOW.
 	 */
 }
 
@@ -2117,6 +2138,7 @@ static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
 	.undo_cwnd	= bbr_undo_cwnd,
 	.cwnd_event	= bbr_cwnd_event,
 	.ssthresh	= bbr_ssthresh,
+	.min_tso_segs	= bbr_min_tso_segs,
 	.get_info	= bbr_get_info,
 	.set_state	= bbr_set_state,
 };
