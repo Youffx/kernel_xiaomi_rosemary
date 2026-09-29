@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * TCP Westwood+: end-to-end bandwidth estimation for TCP
  *
@@ -243,10 +244,15 @@ static void tcp_westwood_event(struct sock *sk, enum tcp_ca_event event)
 
 	switch (event) {
 	case CA_EVENT_COMPLETE_CWR:
-		tp->snd_cwnd = tp->snd_ssthresh = tcp_westwood_bw_rttmin(sk);
+		/* Upstream sync: publish ssthresh before cwnd so concurrent
+		 * readers never observe a raised cwnd with a stale ssthresh.
+		 * 4.19 has no tcp_snd_cwnd_set() helper, so assign directly.
+		 */
+		WRITE_ONCE(tp->snd_ssthresh, tcp_westwood_bw_rttmin(sk));
+		tp->snd_cwnd = tp->snd_ssthresh;
 		break;
 	case CA_EVENT_LOSS:
-		tp->snd_ssthresh = tcp_westwood_bw_rttmin(sk);
+		WRITE_ONCE(tp->snd_ssthresh, tcp_westwood_bw_rttmin(sk));
 		/* Update RTT_min when next ack arrives */
 		w->reset_rtt_min = 1;
 		break;
