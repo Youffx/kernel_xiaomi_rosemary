@@ -20,6 +20,12 @@
 #include "trace.h"
 #include <trace/events/f2fs.h>
 
+/* Older f2fs trees only provide f2fs_msg(). */
+#ifndef f2fs_err
+#define f2fs_err(sbi, fmt, ...) \
+	f2fs_msg((sbi)->sb, KERN_ERR, fmt, ##__VA_ARGS__)
+#endif
+
 static struct kmem_cache *ino_entry_slab;
 struct kmem_cache *f2fs_inode_entry_slab;
 
